@@ -1,4 +1,4 @@
-import Vendor from "../models/Vendor.js";
+import Vendor, { STATUS } from "../models/Vendor.js";
 import VenueCategory from "../models/VenueCategory.js";
 import VenuePackage from "../models/VenuePackage.js";
 import asyncHandler from "../utils/asyncHandler.js";
@@ -337,4 +337,132 @@ export const getAllVendors = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json(new SuccessResponse(200, "All vendors fetched", vendors));
+});
+
+/* ======================================================
+   GET SINGLE VENDOR (Admin)
+====================================================== */
+export const getVendorById = asyncHandler(async (req, res, next) => {
+  const vendor = await Vendor.findById(req.params.id);
+
+  if (!vendor) return next(new ErrorResponse(404, "Vendor not found"));
+
+  return res
+    .status(200)
+    .json(new SuccessResponse(200, "Vendor details", vendor));
+});
+
+/* ======================================================
+    UPDATE VENDOR ADMIN SETTINGS
+====================================================== */
+export const updateVendorStatus = asyncHandler(async (req, res, next) => {
+  const { status } = req.body;
+  if (!STATUS.includes(status)) {
+    return next(new ErrorResponse(400, "Invalid status value"));
+  }
+
+  const vendor = await Vendor.findById(req.params.id);
+  if (!vendor) return next(new ErrorResponse(404, "Vendor not found"));
+  vendor.status = req.body.status ?? vendor.status;
+  await vendor.save();
+
+  return res
+    .status(200)
+    .json(new SuccessResponse(200, `Vendor status updated to ${status}`));
+});
+
+export const toggleFeaturedVendor = asyncHandler(async (req, res, next) => {
+  const vendor = await Vendor.findById(req.params.id);
+  if (!vendor) return next(new ErrorResponse(404, "Vendor not found"));
+  vendor.featured = !vendor.featured;
+  await vendor.save();
+
+  return res
+    .status(200)
+    .json(
+      new SuccessResponse(
+        200,
+        `${vendor.featured ? "Vendor marked as featured" : "Vendor unfeatured"}`
+      )
+    );
+});
+
+export const toggleVerifyBadge = asyncHandler(async (req, res, next) => {
+  const vendor = await Vendor.findById(req.params.id);
+  if (!vendor) return next(new ErrorResponse(404, "Vendor not found"));
+  vendor.verifiedBadge = !vendor.verifiedBadge;
+  await vendor.save();
+
+  return res
+    .status(200)
+    .json(
+      new SuccessResponse(
+        200,
+        `${
+          vendor.verifiedBadge
+            ? "Verified badge granted to vendor"
+            : "Verified badge removed from vendor"
+        }`
+      )
+    );
+});
+
+export const updateAdminNotesForVendor = asyncHandler(
+  async (req, res, next) => {
+    const vendor = await Vendor.findById(req.params.id);
+    if (!vendor) return next(new ErrorResponse(404, "Vendor not found"));
+    vendor.adminNotes = req.body.adminNotes ?? vendor.adminNotes;
+    await vendor.save();
+
+    return res
+      .status(200)
+      .json(new SuccessResponse(200, "Vendor admin notes updated"));
+  }
+);
+
+export const toggleAutoApprovePackages = asyncHandler(
+  async (req, res, next) => {
+    const vendor = await Vendor.findById(req.params.id);
+    if (!vendor) return next(new ErrorResponse(404, "Vendor not found"));
+    vendor.autoApprovePackages = !vendor.autoApprovePackages;
+    await vendor.save();
+    return res
+      .status(200)
+      .json(
+        new SuccessResponse(
+          200,
+          `${
+            vendor.autoApprovePackages
+              ? "Auto-approve packages enabled"
+              : "Auto-approve packages disabled"
+          }`
+        )
+      );
+  }
+);
+
+/* ======================================================
+   DELETE VENDOR (Admin)
+====================================================== */
+export const deleteVendor = asyncHandler(async (req, res, next) => {
+  const vendor = await Vendor.findById(req.params.id);
+  if (!vendor) {
+    return next(new ErrorResponse(404, "Vendor not found"));
+  }
+
+  await deleteFromCloudinary([
+    vendor.profile,
+    vendor.coverImage,
+    ...Object.values(vendor.documents),
+  ]);
+  await vendor.deleteOne();
+
+  return res
+    .status(200)
+    .json(
+      new SuccessResponse(
+        200,
+        `Vendor ${vendor.vendorName} deleted successfully`
+      )
+    );
 });

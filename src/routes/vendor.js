@@ -1,26 +1,34 @@
 import express from "express";
 import {
   createVendor,
-  //   getVendorById,
   updateVendor,
-  deleteVendor,
-  updateVendorStatus,
-  //   toggleFeaturedVendor,
-  //   toggleVerifyBadge,
-  //   updateLastActive,
+  vendorLogin,
+  getVendorProfile,
+  googleAuth,
+  sendForgotPasswordOtp,
+  verifyForgotPasswordOtp,
+  resetPassword,
+  getVendorWalletBalance,
+  getVendorWalletTransactions,
 } from "../controllers/vendor.js";
 import { upload } from "../middlewares/mutler.js";
-
-// import adminAuth from "../middlewares/adminAuth.js"; // admin protected routes
-// import vendorAuth from "../middlewares/vendorAuth.js"; // vendor protected routes
+import { getVendorHeaders } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
 /* ============================================================================
-    VENDOR CRUD (Admin Only)
+    GOOGLE OAUTH ROUTES
 ============================================================================= */
+router.post("/auth/google", googleAuth); // tested
 
-// CREATE vendor
+/* ============================================================================
+    NORMAL LOGIN ROUTE
+============================================================================= */
+router.post("/login", vendorLogin); // tested
+
+/* ============================================================================
+    CREATE VENDOR ROUTE
+============================================================================= */
 router.post(
   "/",
   upload.fields([
@@ -33,47 +41,40 @@ router.post(
     { name: "documents[registrationProof]", maxCount: 1 },
   ]),
   createVendor
-);
-
-// GET single vendor
-// router.get("/:id", getVendorById);
-
-// UPDATE vendor
-router.put(
-  "/:id",
-  upload.fields([
-    { name: "profile", maxCount: 1 },
-    { name: "coverImage", maxCount: 1 },
-
-    { name: "documents[gst]", maxCount: 1 },
-    { name: "documents[pan]", maxCount: 1 },
-    { name: "documents[idProof]", maxCount: 1 },
-    { name: "documents[registrationProof]", maxCount: 1 },
-  ]),
-  updateVendor
-);
-
-// DELETE vendor
-router.delete("/:id", deleteVendor);
+); // tested
 
 /* ============================================================================
-    ADMIN CONTROLS
+    FORGOT PASSWORD ROUTES
 ============================================================================= */
-
-// Update status (pending/active/rejected/blocked)
-router.put("/:id/status", updateVendorStatus);
-
-// Mark vendor as featured/unfeatured
-// router.put("/:id/toggle-featured", toggleFeaturedVendor);
-
-// Toggle verify badge
-// router.put("/:id/toggle-verify", toggleVerifyBadge);
+router.post("/send-forget-otp", sendForgotPasswordOtp); // tested
+router.post("/verify-forget-otp", verifyForgotPasswordOtp); // tested
+router.post("/reset-password", resetPassword); // tested
 
 /* ============================================================================
-    VENDOR SELF ACTIONS (Vendor Auth Required)
+    PROTECTED ROUTES BELOW
 ============================================================================= */
 
-// Update last active timestamp
-// router.put("/:id/last-active", vendorAuth, updateLastActive);
+router.use(getVendorHeaders);
+
+router
+  .route("/profile")
+  // GET vendor profile
+  .get(getVendorProfile) // tested
+  // UPDATE vendor profile
+  .put(
+    upload.fields([
+      { name: "profile", maxCount: 1 },
+      { name: "coverImage", maxCount: 1 },
+
+      { name: "documents[gst]", maxCount: 1 },
+      { name: "documents[pan]", maxCount: 1 },
+      { name: "documents[idProof]", maxCount: 1 },
+      { name: "documents[registrationProof]", maxCount: 1 },
+    ]),
+    updateVendor
+  ); // tested
+
+router.get("/balance", getVendorWalletBalance); // tested
+router.get("/transactions", getVendorWalletTransactions); // tested
 
 export default router;

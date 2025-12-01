@@ -1,6 +1,6 @@
 import mongoose, { model, Schema } from "mongoose";
 
-const vendorCategorySchema = new Schema({
+const serviceCategorySchema = new Schema({
   name: {
     type: String,
     required: true,
@@ -18,8 +18,8 @@ const vendorCategorySchema = new Schema({
   },
 });
 
-const VendorCategory =
-  mongoose.models.VendorCategory ||
-  model("VendorCategory", vendorCategorySchema);
+const ServiceCategory =
+  mongoose.models.ServiceCategory ||
+  model("ServiceCategory", serviceCategorySchema);
 
-export default VendorCategory;
+export default ServiceCategory;

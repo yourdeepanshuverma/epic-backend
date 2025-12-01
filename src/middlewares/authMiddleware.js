@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
-import User from "../models/User.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import Vendor from "../models/Vendor.js";
+import ErrorResponse from "../utils/ErrorResponse.js";
 
 // Authentication using Headers
 const getVendorHeaders = asyncHandler(async (req, _, next) => {
@@ -17,14 +17,12 @@ const getVendorHeaders = asyncHandler(async (req, _, next) => {
       //decodes token id
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      const vendor = await Vendor.findById(decoded.id);
+      const vendor = await Vendor.findById(decoded.id).select(
+        "_id featured status verifiedBadge lastActive autoApprovePackages"
+      );
 
       if (!vendor) {
-        return next(new ErrorHandler(401, "Not authorized"));
-      }
-
-      if (vendor.status !== "active") {
-        return next(new ErrorHandler(401, "Your vendor account is not active"));
+        return next(new ErrorResponse(401, "Not authorized"));
       }
 
       const now = Date.now();
@@ -40,12 +38,12 @@ const getVendorHeaders = asyncHandler(async (req, _, next) => {
 
       next();
     } catch (error) {
-      return next(new ErrorHandler(401, "Not authorized, token failed"));
+      return next(new ErrorResponse(401, "Not authorized, token failed"));
     }
   }
 
   if (!token) {
-    return next(new ErrorHandler(401, "Please login to access this route"));
+    return next(new ErrorResponse(401, "Please login to access this route"));
   }
 });
 

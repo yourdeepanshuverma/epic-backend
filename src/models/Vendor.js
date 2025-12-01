@@ -1,10 +1,20 @@
-import mongoose, { model } from "mongoose";
+import mongoose, { model, Schema } from "mongoose";
 import slugify from "slugify";
 import bcrypt from "bcryptjs";
 
-const STATUS = ["active", "inactive", "pending", "rejected", "blocked"];
+/**
+ * Vendor Status Enum
+ * @enum {string}
+ * @readonly
+ * @property {string} ACTIVE - Active vendor
+ * @property {string} INACTIVE - Inactive vendor
+ * @property {string} PENDING - Pending approval
+ * @property {string} REJECTED - Rejected vendor
+ * @property {string} BLOCKED - Blocked vendor
+ */
+export const STATUS = ["active", "inactive", "pending", "rejected", "blocked"];
 
-const mediaSchema = new mongoose.Schema(
+const mediaSchema = new Schema(
   {
     url: String,
     public_id: String,
@@ -14,7 +24,7 @@ const mediaSchema = new mongoose.Schema(
   }
 );
 
-const documentSchema = new mongoose.Schema(
+const documentSchema = new Schema(
   {
     gst: mediaSchema,
     pan: mediaSchema,
@@ -24,7 +34,7 @@ const documentSchema = new mongoose.Schema(
   { _id: false }
 );
 
-const walletSchema = new mongoose.Schema(
+const walletSchema = new Schema(
   {
     balance: {
       type: Number,
@@ -55,7 +65,7 @@ const walletSchema = new mongoose.Schema(
   { _id: false }
 );
 
-const vendorSchema = new mongoose.Schema(
+const vendorSchema = new Schema(
   {
     // ----------------------
     // BASIC DETAILS
@@ -150,16 +160,21 @@ const vendorSchema = new mongoose.Schema(
     contactPerson: {
       type: String,
       required: true,
+      trim: true,
     },
 
     phone: {
       type: String,
       required: true,
+      unique: true,
+      trim: true,
     },
 
     email: {
       type: String,
       required: true,
+      unique: true,
+      trim: true,
     },
 
     website: String,
@@ -167,7 +182,10 @@ const vendorSchema = new mongoose.Schema(
     // ----------------------
     // WALLET SYSTEM
     // ----------------------
-    wallet: walletSchema,
+    wallet: {
+      type: walletSchema,
+      default: () => ({ balance: 0, transactions: [] }),
+    },
 
     // ----------------------
     // ADMIN CONTROLS
@@ -181,6 +199,7 @@ const vendorSchema = new mongoose.Schema(
       type: String,
       enum: STATUS,
       default: "pending",
+      lowercase: true,
     },
 
     verifiedBadge: {

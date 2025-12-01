@@ -11,6 +11,13 @@ import {
   updateField,
   deleteField,
   getAllVendors,
+  getVendorById,
+  updateVendorStatus,
+  deleteVendor,
+  updateAdminNotesForVendor,
+  toggleAutoApprovePackages,
+  toggleVerifyBadge,
+  toggleFeaturedVendor,
 } from "../controllers/admin.js";
 import { upload } from "../middlewares/mutler.js";
 
@@ -57,6 +64,25 @@ router
 
 //#endregion VENUE PACKAGE CRUD
 
-router.get("/vendors", getAllVendors);
+//#region VENDOR MANAGEMENT ROUTES
+
+router.get("/vendors", getAllVendors); // tested
+router.get("/vendors/:id", getVendorById); // tested
+router.put("/vendors/:id/status", updateVendorStatus); // tested
+router.delete("/vendors/:id", deleteVendor); // tested
+
+// Mark vendor as featured/unfeatured
+router.put("/vendors/:id/toggle-featured", toggleFeaturedVendor); // tested
+
+// Toggle verify badge
+router.put("/vendors/:id/toggle-verify", toggleVerifyBadge); // tested
+
+// Update admin notes
+router.put("/vendors/:id/admin-notes", updateAdminNotesForVendor); // tested
+
+// Update auto-approve packages setting
+router.put("/vendors/:id/toggle-auto-approve", toggleAutoApprovePackages); // tested
+
+//#endregion VENDOR MANAGEMENT ROUTES
 
 export default router;

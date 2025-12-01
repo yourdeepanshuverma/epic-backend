@@ -1,3 +1,4 @@
+import { client } from "../config/googleClient.js";
 import Vendor from "../models/Vendor.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import {
@@ -5,11 +6,17 @@ import {
   uploadToCloudinary,
 } from "../utils/cloudinary.js";
 import ErrorResponse from "../utils/ErrorResponse.js";
+import generateToken from "../utils/generateToken.js";
+import sendEmail from "../utils/sendEmail.js";
 import SuccessResponse from "../utils/SuccessResponse.js";
+import redis from "../config/redisClient.js";
+import { generateOtp } from "../utils/helper.js";
+import { sendOtpSms } from "../utils/smsService.js";
 
 /* ======================================================
    CREATE VENDOR
    (Admin or Vendor Registration)
+
 
    Sample fronted payload:
 {
@@ -161,18 +168,43 @@ export const createVendor = asyncHandler(async (req, res, next) => {
     ]);
   }
 
-  return res
+  const token = generateToken(vendor._id);
+
+  res
     .status(201)
-    .json(new SuccessResponse(201, "Vendor created successfully", vendor));
+    .json(
+      new SuccessResponse(
+        201,
+        `Vendor ${vendor.vendorName} created successfully`,
+        { vendor, token }
+      )
+    );
+
+  await sendEmail(
+    vendor.email,
+    "Vendor Registration Successful",
+    `
+    <h3>Dear ${vendor.vendorName},</h3>
+
+    <p>We are excited to have you on board!</p>
+    <p>Your vendor account has been successfully created.</p>
+    <p>Your login email: ${vendor.email}</p>
+    <p>Your login phone: ${vendor.phone}</p>
+    <p>Your password: ${password}</p>
+    <p>You can now log in and start using our services.</p>
+    <br/>
+    <p>Best Regards,<br/>Epic Team</p>
+  `
+  );
 });
 
 /* ======================================================
    GET SINGLE VENDOR
 ====================================================== */
-export const getVendor = asyncHandler(async (req, res, next) => {
-  const vendor = await Vendor.findById(req.params.id)
-    .populate("state")
-    .populate("city");
+export const getVendorProfile = asyncHandler(async (req, res, next) => {
+  const vendor = await Vendor.findById(req.vendor?._id).select(
+    "-password -wallet -featured -status -verifiedBadge -adminNotes -autoApprovePackages -lastActive -__v"
+  );
 
   if (!vendor) return next(new ErrorResponse(404, "Vendor not found"));
 
@@ -182,10 +214,10 @@ export const getVendor = asyncHandler(async (req, res, next) => {
 });
 
 /* ======================================================
-   UPDATE VENDOR (Vendor Side)
+   UPDATE VENDOR
 ====================================================== */
 export const updateVendor = asyncHandler(async (req, res, next) => {
-  const vendor = await Vendor.findById(req.params.id).select(
+  const vendor = await Vendor.findById(req.vendor?._id).select(
     "-password -wallet -featured -status -verifiedBadge -adminNotes -autoApprovePackages -__v"
   );
   if (!vendor) return next(new ErrorResponse(404, "Vendor not found"));
@@ -255,45 +287,38 @@ export const updateVendor = asyncHandler(async (req, res, next) => {
 
   return res
     .status(200)
-    .json(new SuccessResponse(200, "Vendor updated", vendor));
+    .json(new SuccessResponse(200, "Vendor profile updated", vendor));
 });
 
 /* ======================================================
-   ADMIN: UPDATE STATUS
+    GET VENDOR WALLET BALANCE
 ====================================================== */
-export const updateVendorStatus = asyncHandler(async (req, res, next) => {
-  const vendor = await Vendor.findById(req.params.id);
+
+export const getVendorWalletBalance = asyncHandler(async (req, res, next) => {
+  const vendor = await Vendor.findById(req.vendor?._id).select("wallet");
   if (!vendor) return next(new ErrorResponse(404, "Vendor not found"));
-
-  vendor.status = req.body.status ?? vendor.status;
-  vendor.featured = req.body.featured ?? vendor.featured;
-  vendor.verifiedBadge = req.body.verifiedBadge ?? vendor.verifiedBadge;
-  vendor.adminNotes = req.body.adminNotes ?? vendor.adminNotes;
-  vendor.autoApprovePackages =
-    req.body.autoApprovePackages ?? vendor.autoApprovePackages;
-
-  await vendor.save();
-
-  return res
-    .status(200)
-    .json(new SuccessResponse(200, "Vendor admin settings updated", vendor));
+  return res.status(200).json(
+    new SuccessResponse(200, "Vendor wallet balance", {
+      balance: vendor?.wallet?.balance,
+    })
+  );
 });
 
 /* ======================================================
-   DELETE VENDOR (Admin)
+    GET VENDOR WALLET TRANSACTIONS
 ====================================================== */
-export const deleteVendor = asyncHandler(async (req, res, next) => {
-  const vendor = await Vendor.findById(req.params.id);
-  if (!vendor) {
-    return next(new ErrorResponse(404, "Vendor not found"));
+export const getVendorWalletTransactions = asyncHandler(
+  async (req, res, next) => {
+    const vendor = await Vendor.findById(req.vendor?._id).select("wallet");
+    if (!vendor) return next(new ErrorResponse(404, "Vendor not found"));
+
+    return res.status(200).json(
+      new SuccessResponse(200, "Vendor wallet transactions", {
+        transactions: vendor.wallet.transactions,
+      })
+    );
   }
-
-  await vendor.deleteOne();
-
-  return res
-    .status(200)
-    .json(new SuccessResponse(200, "Vendor deleted successfully"));
-});
+);
 
 /* ======================================================
    VENDOR LOGIN
@@ -305,13 +330,149 @@ export const vendorLogin = asyncHandler(async (req, res, next) => {
     $or: [{ email }, { phone }],
   }).select("+password");
 
-  if (!vendor) return next(new ErrorResponse(401, "Invalid login details"));
+  if (!vendor || !(await vendor.isPasswordCorrect(password))) {
+    return next(new ErrorResponse(401, "Invalid login details"));
+  }
 
-  const correct = await vendor.isPasswordCorrect(password);
-  if (!correct) return next(new ErrorResponse(401, "Invalid login details"));
+  const token = generateToken(vendor._id);
 
   res
     .status(200)
-    .cookie("vendor_token", generateToken(vendor._id), cookieOptions)
-    .json(new SuccessResponse(200, "Login successful", vendor));
+    .json(new SuccessResponse(200, "Login successful", { vendor, token }));
+});
+
+/* // Google OAuth Callback response format
+  //  RESPONSE if VENDOR EXISTS (CASE 1):
+{
+  "status": 200,
+  "message": "Login successful",
+  "data": {
+    "token": "jwt-token-here",
+    "vendor": {
+      "_id": "123",
+      "vendorName": "Royal Banquet",
+      "email": "vendor@gmail.com"
+    }
+  }
+}
+
+  //  RESPONSE if VENDOR DOES NOT EXIST (CASE 2):
+{
+  "status": 200,
+  "message": "Vendor not found",
+  "data": {
+    "googleData": {
+      "vendorName": "Rahul Sharma",
+      "email": "rahul@gmail.com"
+    },
+    "isNewVendor": true
+  }
+}
+*/
+export const googleAuth = asyncHandler(async (req, res, next) => {
+  const { idToken } = req.body;
+
+  if (!idToken) {
+    return next(new ErrorResponse(400, "Google token missing"));
+  }
+
+  // Verify Google token
+  const ticket = await client.verifyIdToken({
+    idToken,
+    audience: process.env.GOOGLE_CLIENT_ID,
+  });
+
+  const payload = ticket.getPayload();
+
+  const googleData = {
+    vendorName: payload.name,
+    email: payload.email,
+  };
+
+  // Check if vendor exists
+  const vendor = await Vendor.findOne({ email: googleData.email });
+
+  if (vendor) {
+    const token = generateToken(vendor._id);
+    return res.status(200).json(
+      new SuccessResponse(200, "Login successful", {
+        token,
+        vendor,
+      })
+    );
+  }
+
+  // Vendor not found → send Google basic data for signup
+  return res.status(200).json(
+    new SuccessResponse(200, "Vendor not registered", {
+      isNewVendor: true,
+      googleData,
+    })
+  );
+});
+
+/* ======================================================
+   FORGOT PASSWORD FLOW
+====================================================== */
+
+// Forget password - send OTP
+export const sendForgotPasswordOtp = asyncHandler(async (req, res, next) => {
+  const { phone } = req.body;
+
+  if (!phone || !/^[6-9]\d{9}$/.test(phone))
+    return next(new ErrorResponse(400, "Invalid phone number"));
+
+  const vendor = await Vendor.findOne({ phone });
+  if (!vendor) return next(new ErrorResponse(404, "Vendor not found"));
+
+  // Prevent resending too fast
+  if (await redis.get(`forget_password_otp:${phone}`)) {
+    return next(new ErrorResponse(400, "OTP already sent. Please wait."));
+  }
+
+  const otp = generateOtp();
+  await redis.setex(`forget_password_otp:${phone}`, 300, otp); // expires in 5 min
+
+  await sendOtpSms(phone, otp, "password reset");
+  res.status(200).json(new SuccessResponse(200, "OTP sent successfully"));
+});
+
+// Verify OTP for forget password
+export const verifyForgotPasswordOtp = asyncHandler(async (req, res, next) => {
+  const { phone, otp } = req.body;
+
+  const storedOtp = await redis.get(`forget_password_otp:${phone}`);
+  if (!storedOtp) return next(new ErrorResponse(400, "OTP expired or invalid"));
+  if (storedOtp !== otp) return next(new ErrorResponse(400, "Invalid OTP"));
+
+  // OTP verified → allow user to reset password
+  await redis.del(`forget_password_otp:${phone}`);
+  await redis.setex(`resetVendorToken:${phone}`, 600, "verified"); // 10 min reset token
+
+  res
+    .status(200)
+    .json(
+      new SuccessResponse(200, "OTP verified, you may now reset your password.")
+    );
+});
+
+// Reset password
+export const resetPassword = asyncHandler(async (req, res, next) => {
+  const { phone, newPassword } = req.body;
+
+  const verified = await redis.get(`resetVendorToken:${phone}`);
+
+  if (!verified)
+    return next(
+      new ErrorResponse(403, "Session expired. Please reverify OTP.")
+    );
+
+  const vendor = await Vendor.findOne({ contactPhone: phone });
+  if (!vendor) return next(new ErrorResponse(404, "Vendor not found"));
+
+  vendor.password = newPassword;
+  await vendor.save();
+
+  await redis.del(`resetVendorToken:${phone}`); // invalidate token
+  res.status(200).json(new SuccessResponse(200, "Password reset successfully"));
 });
