@@ -9,8 +9,8 @@ const citySchema = new Schema(
       lowercase: true,
     },
     image: {
-      public_id: { type: String, required: true },
-      url: { type: String, required: true },
+      public_id: { type: String, default: "" },
+      url: { type: String, default: "" },
     },
     state: {
       type: Types.ObjectId,

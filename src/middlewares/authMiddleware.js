@@ -18,7 +18,7 @@ const getVendorHeaders = asyncHandler(async (req, _, next) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
       const vendor = await Vendor.findById(decoded.id).select(
-        "_id featured status verifiedBadge lastActive autoApprovePackages"
+        "_id role featured status verifiedBadge lastActive autoApprovePackages"
       );
 
       if (!vendor) {

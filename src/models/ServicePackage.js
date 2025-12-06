@@ -1,53 +1,17 @@
 import mongoose, { model, Schema, Types } from "mongoose";
 import slugify from "slugify";
 
-const albumsSchema = new Schema(
+const servicePackageSchema = new Schema(
   {
-    title: String,
-    thumbnail: {
-      public_id: {
-        type: String,
-        required: [true, "Thumbnail public_id is required"],
-      },
-      url: {
-        type: String,
-        required: [true, "Thumbnail url is required"],
-      },
+    isVerified: {
+      type: Boolean,
+      default: false,
     },
-    images: [
-      {
-        public_id: {
-          type: String,
-          required: [true, "Image public_id is required"],
-        },
-        url: {
-          type: String,
-          required: [true, "Image url is required"],
-        },
-      },
-    ],
-  },
-  { _id: false }
-);
-
-const videosSchema = new Schema(
-  {
-    title: { type: String },
-    url: { type: String },
-  },
-  { _id: false }
-);
-
-const faqSchema = new Schema(
-  {
-    question: String,
-    answer: String,
-  },
-  { _id: false }
-);
-
-const venuePackageSchema = new Schema(
-  {
+    visibility: {
+      type: String,
+      enum: ["public", "private"],
+      default: "private",
+    },
     vendor: {
       type: Types.ObjectId,
       ref: "Vendor",
@@ -68,23 +32,17 @@ const venuePackageSchema = new Schema(
       lowercase: true,
       trim: true,
     },
-    featuredImage: {
-      public_id: {
-        type: String,
-        required: [true, "Featured image public_id is required"],
-      },
-      url: {
-        type: String,
-        required: [true, "Featured image url is required"],
-      },
+    price: {
+      type: Number,
+      required: [true, "Price is required"],
     },
-    description: {
+    shortDescription: {
+      type: String,
+      required: [true, "Short description is required"],
+    },
+    fullDescription: {
       type: String,
       required: [true, "Full description is required"],
-    },
-    startingPrice: {
-      type: Number,
-      required: [true, "Starting price is required"],
     },
     // fields locality, full address, city, state, country, google maps link, pincode
     location: {
@@ -119,33 +77,48 @@ const venuePackageSchema = new Schema(
         required: [true, "Pincode is required"],
       },
     },
-    services: {
+    venueDetails: {
       type: Map,
       of: Schema.Types.Mixed,
-      default: {},
     },
-
-    photoAlbums: [albumsSchema],
-
-    videos: [videosSchema],
-
-    reviews: [
-      {
-        type: Types.ObjectId,
-        ref: "Review",
+    amenities: [String],
+    spacePreferences: [String],
+    pricing: {
+      type: Map,
+      of: Schema.Types.Mixed,
+    },
+    // fields cover image, gallery images, video
+    media: {
+      coverImage: {
+        public_id: {
+          type: String,
+          required: [true, "Cover image public_id is required"],
+        },
+        url: {
+          type: String,
+          required: [true, "Cover image URL is required"],
+        },
       },
-    ],
-
-    faqs: [faqSchema],
-
-    approved: {
-      type: Boolean,
-      default: false,
-    },
-    visibility: {
-      type: String,
-      enum: ["public", "private"],
-      default: "public",
+      galleryImages: [
+        {
+          public_id: {
+            type: String,
+            required: [true, "Gallery image public_id is required"],
+          },
+          url: {
+            type: String,
+            required: [true, "Gallery image URL is required"],
+          },
+        },
+      ],
+      video: {
+        public_id: {
+          type: String,
+        },
+        url: {
+          type: String,
+        },
+      },
     },
   },
   {
@@ -153,7 +126,7 @@ const venuePackageSchema = new Schema(
   }
 );
 
-venuePackageSchema.pre("save", async function (next) {
+servicePackageSchema.pre("save", async function (next) {
   if (!this.isModified("title") && !this.isModified("location.city")) {
     return next();
   }
@@ -174,7 +147,8 @@ venuePackageSchema.pre("save", async function (next) {
   next();
 });
 
-const VenuePackage =
-  mongoose.models.VenuePackage || model("VenuePackage", venuePackageSchema);
+const ServicePackage =
+  mongoose.models.ServicePackage ||
+  model("ServicePackage", servicePackageSchema);
 
-export default VenuePackage;
+export default ServicePackage;

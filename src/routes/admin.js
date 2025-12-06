@@ -1,15 +1,5 @@
 import { Router } from "express";
 import {
-  createVenueCategory,
-  getAllVenueCategories,
-  getVenueCategory,
-  updateVenueCategory,
-  deleteVenueCategory,
-  addSection,
-  deleteSection,
-  addField,
-  updateField,
-  deleteField,
   getAllVendors,
   getVendorById,
   updateVendorStatus,
@@ -18,54 +8,44 @@ import {
   toggleAutoApprovePackages,
   toggleVerifyBadge,
   toggleFeaturedVendor,
-} from "../controllers/admin.js";
+} from "../controllers/vendor.js";
+import {
+  createService,
+  deleteService,
+  getAllServices,
+  getServiceById,
+  updateService,
+} from "../controllers/service.js";
+import {
+  createCategory,
+  deleteCategory,
+  getCategories,
+  getCategory,
+  updateCategory,
+} from "../controllers/venueCategory.js";
 import { upload } from "../middlewares/mutler.js";
 
 // import adminAuth from "../middlewares/adminAuth.js"; // optional, if Admin-only
 
 const router = Router();
 
-//#region VENUE CATEGORY CRUD
+//#region service routes
+router.get("/services", getAllServices); // tested
+router.post("/services", createService); // tested
+router.get("/services/:id", getServiceById); // tested
+router.put("/services/:id", updateService); // tested
+router.delete("/services/:id", deleteService); // tested
+//#endregion service routes
 
-// Create Category
-router.post("/venue-category", upload.single("image"), createVenueCategory); // tested
-
-// Get All Categories
-router.get("/venue-category", getAllVenueCategories); // tested
-
-// Get Single Category
-router
-  .route("/venue-category/:id")
-  .get(getVenueCategory) // tested
-  // Update Category
-  .put(upload.single("image"), updateVenueCategory) // tested
-  // Delete Category
-  .delete(deleteVenueCategory); // tested
-
-/* VENUE CATEGORY SECTION CRUD */
-
-// Add Section
-router.post("/venue-category/:id/sections", addSection); // tested
-
-// Delete Section
-router.delete("/venue-category/:id/sections/:sectionKey", deleteSection); // tested
-
-/* VENUE CATEGORY FIELD CRUD */
-
-// Add Field
-router.post("/venue-category/:id/fields", addField); // tested
-
-router
-  .route("/venue-category/:id/fields/:fieldKey")
-  // Update Field
-  .put(updateField) // tested
-  // Delete Field
-  .delete(deleteField); // tested
-
-//#endregion VENUE PACKAGE CRUD
+//#region venue category routes
+router.post("/venue-categories", upload.single("image"), createCategory); // tested
+router.get("/venue-categories", getCategories); // tested
+router.get("/venue-categories/:id", getCategory); // tested
+router.put("/venue-categories/:id", upload.single("image"), updateCategory); // tested
+router.delete("/venue-categories/:id", deleteCategory); // tested
+//#endregion venue category routes
 
 //#region VENDOR MANAGEMENT ROUTES
-
 router.get("/vendors", getAllVendors); // tested
 router.get("/vendors/:id", getVendorById); // tested
 router.put("/vendors/:id/status", updateVendorStatus); // tested

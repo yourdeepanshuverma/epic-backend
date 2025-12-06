@@ -1,23 +1,4 @@
-import mongoose, { model, Schema } from "mongoose";
-
-const FIELD_TYPES = [
-  "text",
-  "textarea",
-  "number",
-  "select",
-  "multi-select",
-  "checkbox",
-  "radio",
-  "date",
-  "time",
-  "range",
-  "image",
-  "images",
-  "tags",
-  "location",
-  "url",
-  "phone",
-];
+import mongoose, { model, Schema, Types } from "mongoose";
 
 const venueCategorySchema = new Schema(
   {
@@ -25,6 +6,13 @@ const venueCategorySchema = new Schema(
       type: String,
       required: [true, "Name is required"],
       unique: true,
+      trim: true,
+    },
+    slug: {
+      type: String,
+      required: [true, "Slug is required"],
+      unique: true,
+      lowercase: true,
       trim: true,
     },
     image: {
@@ -37,25 +25,11 @@ const venueCategorySchema = new Schema(
         required: [true, "Image URL is required"],
       },
     },
-    // sections for grouping fields in UI
-    sections: [
+    // Services linked to category
+    services: [
       {
-        label: String,
-        key: String,
-      },
-    ],
-    // single flexible schema for EVERYTHING
-    fields: [
-      {
-        label: String, // shown to vendor
-        key: String, // stored in package
-        type: {
-          type: String,
-          enum: FIELD_TYPES,
-        },
-        section: String, // "details" | "amenities" | "space" | "pricing"
-        options: [String], // for select, multi select, space, amenities
-        isFilterable: Boolean, // optional, for filtering UI
+        type: Types.ObjectId,
+        ref: "Service",
       },
     ],
   },

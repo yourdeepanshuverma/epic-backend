@@ -44,13 +44,15 @@ app.use(
   })
 );
 
+const allowedOrigins = [
+  process.env.SITE_URL,
+  process.env.ADMIN_URL,
+  node_env === "development" ? "http://localhost:5173" : null,
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: [
-      node_env === "development" && "http://localhost:5173",
-      process.env.SITE_URL,
-      process.env.ADMIN_URL,
-    ].filter(Boolean),
+    origin: allowedOrigins,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     credentials: true,
   })

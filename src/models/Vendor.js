@@ -12,7 +12,23 @@ import bcrypt from "bcryptjs";
  * @property {string} REJECTED - Rejected vendor
  * @property {string} BLOCKED - Blocked vendor
  */
-export const STATUS = ["active", "inactive", "pending", "rejected", "blocked"];
+export const STATUSES = [
+  "active",
+  "inactive",
+  "pending",
+  "rejected",
+  "blocked",
+];
+
+/**
+ * Vendor Role Enum
+ * @enum {string}
+ * @readonly
+ * @property {string} VENDOR - Vendor role
+ * @property {string} ADMIN - Admin role
+ */
+
+export const ROLES = ["vendor", "admin"];
 
 const mediaSchema = new Schema(
   {
@@ -190,6 +206,13 @@ const vendorSchema = new Schema(
     // ----------------------
     // ADMIN CONTROLS
     // ----------------------
+
+    role: {
+      type: String,
+      enum: ROLES,
+      default: "vendor",
+    },
+
     featured: {
       type: Boolean,
       default: false,
@@ -197,7 +220,7 @@ const vendorSchema = new Schema(
 
     status: {
       type: String,
-      enum: STATUS,
+      enum: STATUSES,
       default: "pending",
       lowercase: true,
     },
