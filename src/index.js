@@ -47,8 +47,8 @@ app.use(
 const allowedOrigins = [
   process.env.SITE_URL,
   process.env.ADMIN_URL,
+  "http://localhost:5173",
   // node_env === "development" ? "http://localhost:5173" : null,
-  "http://localhost:3000",
 ].filter(Boolean);
 
 app.use(
