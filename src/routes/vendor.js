@@ -35,6 +35,28 @@ import {
   updateReviewForPackage,
   updateVideo,
 } from "../controllers/venuePackage.js";
+import {
+  addNewServiceAlbums,
+  addServiceFaq,
+  addServiceReviewToPackage,
+  addServiceVideo,
+  createServicePackage,
+  deleteServiceAlbum,
+  deleteServiceAlbumPhoto,
+  deleteServiceFaq,
+  deleteServicePackage,
+  deleteServiceReviewForPackage,
+  deleteServiceVideo,
+  getServicePackage,
+  getServicePackages,
+  getServiceReviewsForPackage,
+  updateServiceAlbumTitles,
+  updateServiceApprovalAndVisibility,
+  updateServiceBasicDetails,
+  updateServiceFaq,
+  updateServiceReviewForPackage,
+  updateServiceVideo,
+} from "../controllers/servicePackage.js";
 
 const router = express.Router();
 
@@ -95,8 +117,8 @@ router
     updateVendor
   ); // tested
 
-router.get("/balance", getVendorWalletBalance); // tested
-router.get("/transactions", getVendorWalletTransactions); // tested
+router.get("/balance", getVendorHeaders, getVendorWalletBalance); // tested
+router.get("/transactions", getVendorHeaders, getVendorWalletTransactions); // tested
 
 /*============================================================================
     VENUE PACKAGE ROUTES
@@ -205,5 +227,125 @@ router.put(
 router.delete("/venue-packages/:id", getVendorHeaders, deleteVenuePackage); // tested
 
 //#endregion VENUE PACKAGE MANAGEMENT ROUTES
+
+/*============================================================================
+    SERVICE PACKAGE ROUTES
+=============================================================================*/
+//#region SERVICE PACKAGE MANAGEMENT ROUTES
+
+router.get("/service-packages", getServicePackages); // tested
+router.get("/service-packages/:id", getServicePackage); // tested
+
+// CREATE service package
+router.post(
+  "/service-packages",
+  getVendorHeaders,
+  upload.single("featuredImage"),
+  createServicePackage
+); // tested
+
+// UPDATE basic details of service package
+router.put(
+  "/service-packages/:id/basic",
+  getVendorHeaders,
+  upload.single("featuredImage"),
+  updateServiceBasicDetails
+); // tested
+
+// FAQs for service package
+router.post("/service-packages/:id/faqs", getVendorHeaders, addServiceFaq); // tested
+router.put(
+  "/service-packages/:id/faqs/:index",
+  getVendorHeaders,
+  updateServiceFaq
+); // tested
+router.delete(
+  "/service-packages/:id/faqs/:index",
+  getVendorHeaders,
+  deleteServiceFaq
+); // tested
+
+// Videos for service package
+router.post("/service-packages/:id/videos", getVendorHeaders, addServiceVideo); // tested
+router.put(
+  "/service-packages/:id/videos/:index",
+  getVendorHeaders,
+  updateServiceVideo
+); // tested
+router.delete(
+  "/service-packages/:id/videos/:index",
+  getVendorHeaders,
+  deleteServiceVideo
+); // tested
+
+// Add new albums to service package
+router.patch(
+  "/service-packages/:id/albums",
+  getVendorHeaders,
+  upload.any(),
+  addNewServiceAlbums
+); // tested
+
+// Update album titles
+router.patch(
+  "/service-packages/:id/albums/:albumIndex/titles",
+  getVendorHeaders,
+  updateServiceAlbumTitles
+); // tested
+
+// Delete album photo
+router.delete(
+  "/service-packages/:id/albums/:albumIndex",
+  getVendorHeaders,
+  deleteServiceAlbum
+); // tested
+
+// Delete photo from album
+router.delete(
+  "/service-packages/:id/albums/:albumIndex/photos/:photoIndex",
+  getVendorHeaders,
+  deleteServiceAlbumPhoto
+); // tested
+
+/*============================================================================
+    SERVICE PACKAGE REVIEWS ROUTES
+=============================================================================*/
+
+// Reviews for package
+router.get(
+  "/service-packages/:id/reviews",
+  getVendorHeaders,
+  getServiceReviewsForPackage
+); // tested
+
+router.post(
+  "/service-packages/:id/reviews",
+  getVendorHeaders,
+  addServiceReviewToPackage
+); // tested
+
+router.put(
+  "/service-packages/:id/reviews/:reviewId",
+  getVendorHeaders,
+  updateServiceReviewForPackage
+); //  tested
+
+// Delete review for package (admin only)
+router.delete(
+  "/service-packages/:id/reviews/:reviewId",
+  getVendorHeaders,
+  deleteServiceReviewForPackage
+); // tested
+
+router.put(
+  "/service-packages/:id/status",
+  getVendorHeaders,
+  updateServiceApprovalAndVisibility
+); // tested
+
+// DELETE service package
+router.delete("/service-packages/:id", getVendorHeaders, deleteServicePackage); // tested
+
+//#endregion SERVICE PACKAGE MANAGEMENT ROUTES
 
 export default router;

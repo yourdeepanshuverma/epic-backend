@@ -1,26 +1,62 @@
 import mongoose, { model, Schema, Types } from "mongoose";
 import slugify from "slugify";
 
+const albumsSchema = new Schema(
+  {
+    title: String,
+    thumbnail: {
+      public_id: {
+        type: String,
+        required: [true, "Thumbnail public_id is required"],
+      },
+      url: {
+        type: String,
+        required: [true, "Thumbnail url is required"],
+      },
+    },
+    images: [
+      {
+        public_id: {
+          type: String,
+          required: [true, "Image public_id is required"],
+        },
+        url: {
+          type: String,
+          required: [true, "Image url is required"],
+        },
+      },
+    ],
+  },
+  { _id: false }
+);
+
+const videosSchema = new Schema(
+  {
+    title: { type: String },
+    url: { type: String },
+  },
+  { _id: false }
+);
+
+const faqSchema = new Schema(
+  {
+    question: String,
+    answer: String,
+  },
+  { _id: false }
+);
+
 const servicePackageSchema = new Schema(
   {
-    isVerified: {
-      type: Boolean,
-      default: false,
-    },
-    visibility: {
-      type: String,
-      enum: ["public", "private"],
-      default: "private",
-    },
     vendor: {
       type: Types.ObjectId,
       ref: "Vendor",
       required: [true, "Vendor is required"],
     },
-    venueCategory: {
+    serviceSubCategory: {
       type: Types.ObjectId,
-      ref: "VenueCategory",
-      required: [true, "Venue category is required"],
+      ref: "ServiceSubCategory",
+      required: [true, "Service sub-category is required"],
     },
     title: {
       type: String,
@@ -32,17 +68,23 @@ const servicePackageSchema = new Schema(
       lowercase: true,
       trim: true,
     },
-    price: {
-      type: Number,
-      required: [true, "Price is required"],
+    featuredImage: {
+      public_id: {
+        type: String,
+        required: [true, "Featured image public_id is required"],
+      },
+      url: {
+        type: String,
+        required: [true, "Featured image url is required"],
+      },
     },
-    shortDescription: {
-      type: String,
-      required: [true, "Short description is required"],
-    },
-    fullDescription: {
+    description: {
       type: String,
       required: [true, "Full description is required"],
+    },
+    startingPrice: {
+      type: Number,
+      required: [true, "Starting price is required"],
     },
     // fields locality, full address, city, state, country, google maps link, pincode
     location: {
@@ -77,48 +119,33 @@ const servicePackageSchema = new Schema(
         required: [true, "Pincode is required"],
       },
     },
-    venueDetails: {
+    services: {
       type: Map,
       of: Schema.Types.Mixed,
+      default: {},
     },
-    amenities: [String],
-    spacePreferences: [String],
-    pricing: {
-      type: Map,
-      of: Schema.Types.Mixed,
+
+    photoAlbums: [albumsSchema],
+
+    videos: [videosSchema],
+
+    reviews: [
+      {
+        type: Types.ObjectId,
+        ref: "Review",
+      },
+    ],
+
+    faqs: [faqSchema],
+
+    approved: {
+      type: Boolean,
+      default: false,
     },
-    // fields cover image, gallery images, video
-    media: {
-      coverImage: {
-        public_id: {
-          type: String,
-          required: [true, "Cover image public_id is required"],
-        },
-        url: {
-          type: String,
-          required: [true, "Cover image URL is required"],
-        },
-      },
-      galleryImages: [
-        {
-          public_id: {
-            type: String,
-            required: [true, "Gallery image public_id is required"],
-          },
-          url: {
-            type: String,
-            required: [true, "Gallery image URL is required"],
-          },
-        },
-      ],
-      video: {
-        public_id: {
-          type: String,
-        },
-        url: {
-          type: String,
-        },
-      },
+    visibility: {
+      type: String,
+      enum: ["public", "private"],
+      default: "public",
     },
   },
   {

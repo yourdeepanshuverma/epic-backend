@@ -24,6 +24,20 @@ import {
   updateCategory,
 } from "../controllers/venueCategory.js";
 import { upload } from "../middlewares/mutler.js";
+import {
+  createServiceCategory,
+  deleteServiceCategory,
+  getAllServiceCategories,
+  getServiceCategory,
+  updateServiceCategory,
+} from "../controllers/serviceCategory.js";
+import {
+  createServiceSubCategory,
+  deleteServiceSubCategory,
+  getAllServiceSubCategories,
+  getServiceSubCategory,
+  updateServiceSubCategory,
+} from "../controllers/serviceSubCategory.js";
 
 // import adminAuth from "../middlewares/adminAuth.js"; // optional, if Admin-only
 
@@ -45,7 +59,7 @@ router.put("/venue-categories/:id", upload.single("image"), updateCategory); // 
 router.delete("/venue-categories/:id", deleteCategory); // tested
 //#endregion venue category routes
 
-//#region VENDOR MANAGEMENT ROUTES
+//#region vendor management routes
 router.get("/vendors", getAllVendors); // tested
 router.get("/vendors/:id", getVendorById); // tested
 router.put("/vendors/:id/status", updateVendorStatus); // tested
@@ -64,5 +78,47 @@ router.put("/vendors/:id/admin-notes", updateAdminNotesForVendor); // tested
 router.put("/vendors/:id/toggle-auto-approve", toggleAutoApprovePackages); // tested
 
 //#endregion VENDOR MANAGEMENT ROUTES
+
+//#region service category routes
+router.post(
+  "/service-categories",
+  upload.single("image"),
+  createServiceCategory
+); // tested
+
+router.get("/service-categories", getAllServiceCategories); // tested
+
+router.get("/service-categories/:id", getServiceCategory);
+
+router.put(
+  "/service-categories/:id",
+  upload.single("image"),
+  updateServiceCategory
+); // tested
+
+router.delete("/service-categories/:id", deleteServiceCategory);
+
+//#endregion service category routes
+
+//#region service sub-category routes
+router.post(
+  "/service-sub-categories",
+  upload.single("image"),
+  createServiceSubCategory
+); // tested
+
+router.get("/service-sub-categories", getAllServiceSubCategories); // tested
+
+router.get("/service-sub-categories/:id", getServiceSubCategory); // tested
+
+router.put(
+  "/service-sub-categories/:id",
+  upload.single("image"),
+  updateServiceSubCategory
+); // tested
+
+router.delete("/service-sub-categories/:id", deleteServiceSubCategory); // tested
+
+//#endregion service sub-category routes
 
 export default router;

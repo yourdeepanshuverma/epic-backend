@@ -1,18 +1,25 @@
-import mongoose, { model, Schema } from "mongoose";
+import mongoose, { model, Schema, Types } from "mongoose";
 
 const serviceSubCategory = new Schema({
   name: {
     type: String,
     required: [true, "Name is required"],
   },
-  Image: {
+  slug: {
+    type: String,
+    required: [true, "Slug is required"],
+    unique: true,
+    lowercase: true,
+    trim: true,
+  },
+  image: {
     public_id: {
       type: String,
-      required: [true, "Public ID is required"],
+      required: [true, "Image public_id is required"],
     },
     url: {
       type: String,
-      required: [true, "URL is required"],
+      required: [true, "Image URL is required"],
     },
   },
   serviceCategory: {
@@ -20,25 +27,11 @@ const serviceSubCategory = new Schema({
     ref: "ServiceCategory",
     required: [true, "Service Category is required"],
   },
-  // sections for grouping fields in UI
-  sections: [
+  // Services linked to category
+  services: [
     {
-      label: String,
-      key: String,
-    },
-  ],
-  // single flexible schema for EVERYTHING
-  fields: [
-    {
-      label: String, // shown to vendor
-      key: String, // stored in package
-      type: {
-        type: String,
-        enum: FIELD_TYPES,
-      },
-      section: String, // "details" | "amenities" | "space" | "pricing"
-      options: [String], // for select, multi select, space, amenities
-      isFilterable: Boolean, // optional, for filtering UI
+      type: Types.ObjectId,
+      ref: "Service",
     },
   ],
 });

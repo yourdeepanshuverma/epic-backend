@@ -6,6 +6,13 @@ const serviceCategorySchema = new Schema({
     required: true,
     unique: true,
   },
+  slug: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+    trim: true,
+  },
   image: {
     public_id: {
       type: String,
