@@ -463,7 +463,45 @@ export const updateAlbumTitles = asyncHandler(async (req, res, next) => {
 });
 
 /* ======================================================
-    DELETE ALBUM PHOTO
+      ADD PHOTOS TO ALBUM
+====================================================== */
+export const addPhotosToAlbum = asyncHandler(async (req, res, next) => {
+  const { id, albumIndex } = req.params;
+
+  const pkg = await VenuePackage.findById(id);
+  if (!pkg) return next(new ErrorResponse(404, "Package not found"));
+
+  const index = parseInt(albumIndex, 10);
+  if (isNaN(index) || index < 0 || index >= pkg.photoAlbums.length) {
+    return next(new ErrorResponse(400, "Invalid album index"));
+  }
+
+  if (!req.files || req.files.length === 0) {
+    return next(new ErrorResponse(400, "No photos uploaded"));
+  }
+
+  // Upload new photos
+  const uploaded = await uploadToCloudinary(req.files);
+
+  // Add to album
+  pkg.photoAlbums[index].images.push(...uploaded);
+
+  // If album has no thumbnail, set first image as thumbnail
+  if (!pkg.photoAlbums[index].thumbnail?.url) {
+    pkg.photoAlbums[index].thumbnail = uploaded[0];
+  }
+
+  await pkg.save();
+
+  res
+    .status(200)
+    .json(
+      new SuccessResponse(200, "Photos added to album", pkg.photoAlbums[index])
+    );
+});
+
+/* ======================================================
+       DELETE PHOTO FROM ALBUM
 ====================================================== */
 export const deleteAlbumPhoto = asyncHandler(async (req, res, next) => {
   const { id, albumIndex, photoIndex } = req.params;
@@ -474,20 +512,37 @@ export const deleteAlbumPhoto = asyncHandler(async (req, res, next) => {
   const album = pkg.photoAlbums[albumIndex];
   if (!album) return next(new ErrorResponse(400, "Album not found"));
 
-  if (!album.images[photoIndex])
-    return next(new ErrorResponse(400, "Photo index does not exist"));
+  const photo = album.images[photoIndex];
+  if (!photo) return next(new ErrorResponse(400, "Photo index does not exist"));
 
-  const deleted = await deleteFromCloudinary([album.images[photoIndex]]);
-  if (deleted) {
-    album.images.splice(photoIndex, 1);
-    // If thumbnail was deleted, set new thumbnail
-    if (album.thumbnail.url === album.images[photoIndex]?.url) {
-      album.thumbnail = album.images[0] || { public_id: "", url: "" };
-    }
+  // 1. Delete from Cloudinary
+  await deleteFromCloudinary([photo]);
 
+  // 2. Remove photo
+  album.images.splice(photoIndex, 1);
+
+  // 3. If album is now empty → delete album completely
+  if (album.images.length === 0) {
+    pkg.photoAlbums.splice(albumIndex, 1);
     await pkg.save();
+
+    return res
+      .status(200)
+      .json(new SuccessResponse(200, "Photo deleted and album removed"));
   }
-  res.status(200).json(new SuccessResponse(200, "Photo deleted", pkg));
+
+  // 4. If deleted photo was thumbnail → replace thumbnail
+  if (album.thumbnail.public_id === photo.public_id) {
+    album.thumbnail = album.images[0]; // first image becomes new thumbnail
+  }
+
+  await pkg.save();
+
+  return res
+    .status(200)
+    .json(
+      new SuccessResponse(200, "Photo deleted", pkg.photoAlbums[albumIndex])
+    );
 });
 
 /* ======================================================

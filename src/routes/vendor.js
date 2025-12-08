@@ -11,11 +11,12 @@ import {
   getVendorWalletBalance,
   getVendorWalletTransactions,
 } from "../controllers/vendor.js";
-import { upload } from "../middlewares/mutler.js";
+import { createArrayUpload, upload } from "../middlewares/mutler.js";
 import { getVendorHeaders } from "../middlewares/authMiddleware.js";
 import {
   addFaq,
   addNewAlbums,
+  addPhotosToAlbum,
   addReviewToPackage,
   addVideo,
   createVenuePackage,
@@ -37,6 +38,7 @@ import {
 } from "../controllers/venuePackage.js";
 import {
   addNewServiceAlbums,
+  addPhotosToServiceAlbum,
   addServiceFaq,
   addServiceReviewToPackage,
   addServiceVideo,
@@ -173,6 +175,14 @@ router.patch(
   updateAlbumTitles
 ); // tested
 
+// Add photos to album
+router.patch(
+  "/venue-packages/:id/albums/:albumIndex/photos",
+  getVendorHeaders,
+  createArrayUpload("photos", 5, 20),
+  addPhotosToAlbum
+); // tested
+
 // Delete album photo
 router.delete(
   "/venue-packages/:id/albums/:albumIndex",
@@ -291,6 +301,14 @@ router.patch(
   "/service-packages/:id/albums/:albumIndex/titles",
   getVendorHeaders,
   updateServiceAlbumTitles
+); // tested
+
+// Add photos to album
+router.patch(
+  "/service-packages/:id/albums/:albumIndex/photos",
+  getVendorHeaders,
+  createArrayUpload("photos", 5, 20),
+  addPhotosToServiceAlbum
 ); // tested
 
 // Delete album photo
