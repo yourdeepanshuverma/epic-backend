@@ -1,4 +1,4 @@
-import City from "../models/city.js";
+import City from "../models/City.js";
 import Country from "../models/Country.js";
 import State from "../models/State.js";
 import ServiceSubCategory from "../models/ServiceSubCategory.js";
