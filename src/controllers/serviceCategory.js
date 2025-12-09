@@ -115,3 +115,14 @@ export const deleteServiceCategory = asyncHandler(async (req, res, next) => {
     .status(200)
     .json(new SuccessResponse(200, "Category deleted successfully"));
 });
+
+// GET ALL CATEGORIES
+export const getCategoriesForServicePackage = asyncHandler(async (req, res) => {
+  const categories = await ServiceCategory.find().select("_id name");
+
+  res
+    .status(200)
+    .json(
+      new SuccessResponse(200, "Categories fetched successfully", categories)
+    );
+});

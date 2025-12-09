@@ -171,3 +171,19 @@ export const deleteServiceSubCategory = asyncHandler(async (req, res, next) => {
 
   res.status(200).json(new SuccessResponse(200, "Sub-category deleted"));
 });
+
+export const getServiceSubCategoriesForPackage = asyncHandler(
+  async (req, res) => {
+    const categories = await ServiceSubCategory.find().select("_id name");
+
+    res
+      .status(200)
+      .json(
+        new SuccessResponse(
+          200,
+          "Sub-categories fetched successfully",
+          categories
+        )
+      );
+  }
+);

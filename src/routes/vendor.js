@@ -59,6 +59,9 @@ import {
   updateServiceReviewForPackage,
   updateServiceVideo,
 } from "../controllers/servicePackage.js";
+import { getCategoriesForVenuePackage } from "../controllers/venueCategory.js";
+import { getCategoriesForServicePackage } from "../controllers/serviceCategory.js";
+import { getServiceSubCategoriesForPackage } from "../controllers/serviceSubCategory.js";
 
 const router = express.Router();
 
@@ -126,6 +129,7 @@ router.get("/transactions", getVendorHeaders, getVendorWalletTransactions); // t
     VENUE PACKAGE ROUTES
 =============================================================================*/
 //#region VENUE PACKAGE MANAGEMENT ROUTES
+router.get("/venue-categories", getVendorHeaders, getCategoriesForVenuePackage); // tested
 
 router.get("/venue-packages", getVenuePackages); // tested
 router.get("/venue-packages/:id", getVenuePackage); // tested
@@ -242,6 +246,18 @@ router.delete("/venue-packages/:id", getVendorHeaders, deleteVenuePackage); // t
     SERVICE PACKAGE ROUTES
 =============================================================================*/
 //#region SERVICE PACKAGE MANAGEMENT ROUTES
+
+router.get(
+  "/service-categories",
+  getVendorHeaders,
+  getCategoriesForServicePackage
+); // tested
+
+router.get(
+  "/service-sub-categories",
+  getVendorHeaders,
+  getServiceSubCategoriesForPackage
+); // tested
 
 router.get("/service-packages", getServicePackages); // tested
 router.get("/service-packages/:id", getServicePackage); // tested

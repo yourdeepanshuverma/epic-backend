@@ -182,3 +182,16 @@ export const deleteCategory = asyncHandler(async (req, res, next) => {
       )
     );
 });
+
+/* ======================================================
+   GET CATEGORIES FOR VENUE PACKAGE
+====================================================== */
+export const getCategoriesForVenuePackage = asyncHandler(async (req, res) => {
+  const categories = await VenueCategory.find().select("_id name");
+
+  res
+    .status(200)
+    .json(
+      new SuccessResponse(200, "Categories fetched successfully", categories)
+    );
+});
