@@ -187,7 +187,9 @@ export const deleteCategory = asyncHandler(async (req, res, next) => {
    GET CATEGORIES FOR VENUE PACKAGE
 ====================================================== */
 export const getCategoriesForVenuePackage = asyncHandler(async (req, res) => {
-  const categories = await VenueCategory.find().select("_id name");
+  const categories = await VenueCategory.find()
+    .select("_id name services")
+    .populate("services");
 
   res
     .status(200)

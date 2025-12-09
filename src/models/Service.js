@@ -1,6 +1,6 @@
 import mongoose, { Schema, model } from "mongoose";
 
-const FIELD_TYPES = ["text", "textarea", "number", "boolean"];
+const FIELD_TYPES = ["text", "textarea", "number", "checkbox"];
 
 const serviceSchema = new Schema(
   {

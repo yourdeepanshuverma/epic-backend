@@ -174,7 +174,9 @@ export const deleteServiceSubCategory = asyncHandler(async (req, res, next) => {
 
 export const getServiceSubCategoriesForPackage = asyncHandler(
   async (req, res) => {
-    const categories = await ServiceSubCategory.find().select("_id name");
+    const categories = await ServiceSubCategory.find()
+      .select("_id name services")
+      .populate("services");
 
     res
       .status(200)
