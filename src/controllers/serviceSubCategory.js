@@ -174,7 +174,19 @@ export const deleteServiceSubCategory = asyncHandler(async (req, res, next) => {
 
 export const getServiceSubCategoriesForPackage = asyncHandler(
   async (req, res) => {
-    const categories = await ServiceSubCategory.find()
+    const categoryExists = await ServiceCategory.exists({
+      _id: req.params.serviceCategory,
+    });
+
+    if (!categoryExists) {
+      return res
+        .status(404)
+        .json(new ErrorResponse(404, "Service category not found"));
+    }
+
+    const categories = await ServiceSubCategory.find({
+      serviceCategory: req.params.serviceCategory,
+    })
       .select("_id name services")
       .populate("services");
 
