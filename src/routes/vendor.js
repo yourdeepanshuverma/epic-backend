@@ -254,7 +254,7 @@ router.get(
 ); // tested
 
 router.get(
-  "/service-sub-categories",
+  "/service-categories/:serviceCategory/service-sub-categories",
   getVendorHeaders,
   getServiceSubCategoriesForPackage
 ); // tested

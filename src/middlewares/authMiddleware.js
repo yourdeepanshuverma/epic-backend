@@ -47,4 +47,25 @@ const getVendorHeaders = asyncHandler(async (req, _, next) => {
   }
 });
 
-export { getVendorHeaders };
+const getAdminCookies = asyncHandler(async (req, _, next) => {
+  const token = req.cookies["adminToken"];
+
+  if (!token) {
+    return next(new ErrorResponse(401, "Not authorized"));
+  }
+
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+  const vendor = await Vendor.findById(decoded.id).select(
+    "_id role featured status verifiedBadge lastActive autoApprovePackages"
+  );
+  if (!vendor || vendor.role !== "admin") {
+    return next(new ErrorResponse(401, "Not authorized"));
+  }
+
+  req.vendor = vendor;
+
+  next();
+});
+
+export { getVendorHeaders, getAdminCookies };

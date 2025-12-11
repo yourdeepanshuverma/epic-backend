@@ -1,14 +1,5 @@
 import { Router } from "express";
-import {
-  getAllVendors,
-  getVendorById,
-  updateVendorStatus,
-  deleteVendor,
-  updateAdminNotesForVendor,
-  toggleAutoApprovePackages,
-  toggleVerifyBadge,
-  toggleFeaturedVendor,
-} from "../controllers/vendor.js";
+import { checkAdmin } from "../controllers/admin.js";
 import {
   createService,
   deleteService,
@@ -16,14 +7,6 @@ import {
   getServiceById,
   updateService,
 } from "../controllers/service.js";
-import {
-  createCategory,
-  deleteCategory,
-  getCategories,
-  getCategory,
-  updateCategory,
-} from "../controllers/venueCategory.js";
-import { upload } from "../middlewares/mutler.js";
 import {
   createServiceCategory,
   deleteServiceCategory,
@@ -38,10 +21,31 @@ import {
   getServiceSubCategory,
   updateServiceSubCategory,
 } from "../controllers/serviceSubCategory.js";
+import {
+  deleteVendor,
+  getAllVendors,
+  getVendorById,
+  toggleAutoApprovePackages,
+  toggleFeaturedVendor,
+  toggleVerifyBadge,
+  updateAdminNotesForVendor,
+  updateVendorStatus,
+} from "../controllers/vendor.js";
+import {
+  createCategory,
+  deleteCategory,
+  getCategories,
+  getCategory,
+  updateCategory,
+} from "../controllers/venueCategory.js";
+import { getAdminCookies } from "../middlewares/authMiddleware.js";
+import { upload } from "../middlewares/mutler.js";
 
 // import adminAuth from "../middlewares/adminAuth.js"; // optional, if Admin-only
 
 const router = Router();
+
+router.get("/check", getAdminCookies, checkAdmin); // tested
 
 //#region service routes
 router.get("/services", getAllServices); // tested

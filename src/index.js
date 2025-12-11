@@ -8,6 +8,7 @@ import errorMiddleware from "./middlewares/errorMiddleware.js";
 import adminRoutes from "./routes/admin.js";
 import locationRoutes from "./routes/location.js";
 import vendorRoutes from "./routes/vendor.js";
+import transactionRoutes from "./routes/transaction.js";
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -66,6 +67,7 @@ app.get("/", (req, res) => {
 app.use("/api/v1/vendor", vendorRoutes);
 app.use("/api/v1/location", locationRoutes);
 app.use("/api/v1/admin", adminRoutes);
+app.use("/api/v1/transaction", transactionRoutes);
 
 // Error Middleware
 app.use(errorMiddleware);

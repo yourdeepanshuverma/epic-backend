@@ -13,6 +13,13 @@ import redis from "../config/redisClient.js";
 import { generateOtp } from "../utils/helper.js";
 import { sendOtpSms } from "../utils/smsService.js";
 
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+};
+
 /* ======================================================
    CREATE VENDOR
    (Admin or Vendor Registration)
@@ -294,7 +301,6 @@ export const updateVendor = asyncHandler(async (req, res, next) => {
 /* ======================================================
     GET VENDOR WALLET BALANCE
 ====================================================== */
-
 export const getVendorWalletBalance = asyncHandler(async (req, res, next) => {
   const vendor = await Vendor.findById(req.vendor?._id).select("wallet");
   if (!vendor) return next(new ErrorResponse(404, "Vendor not found"));
@@ -310,7 +316,12 @@ export const getVendorWalletBalance = asyncHandler(async (req, res, next) => {
 ====================================================== */
 export const getVendorWalletTransactions = asyncHandler(
   async (req, res, next) => {
-    const vendor = await Vendor.findById(req.vendor?._id).select("wallet");
+    const vendor = await Vendor.findById(req.vendor?._id)
+      .select("wallet")
+      .populate({
+        path: "wallet.transactions",
+        options: { sort: { createdAt: -1 } },
+      });
     if (!vendor) return next(new ErrorResponse(404, "Vendor not found"));
 
     return res.status(200).json(
@@ -337,7 +348,15 @@ export const vendorLogin = asyncHandler(async (req, res, next) => {
 
   const token = generateToken(vendor._id);
 
-  res
+  if (vendor.role === "admin") {
+    return res.status(200).cookie("adminToken", token, cookieOptions).json(
+      new SuccessResponse(200, "Welcome Admin", {
+        vendor,
+      })
+    );
+  }
+
+  return res
     .status(200)
     .json(new SuccessResponse(200, "Login successful", { vendor, token }));
 });
@@ -527,7 +546,6 @@ export const updateVendorStatus = asyncHandler(async (req, res, next) => {
 /* ======================================================
    TOGGLE FEATURED VENDOR (Admin)
 ====================================================== */
-
 export const toggleFeaturedVendor = asyncHandler(async (req, res, next) => {
   const vendor = await Vendor.findById(req.params.id);
   if (!vendor) return next(new ErrorResponse(404, "Vendor not found"));
@@ -547,7 +565,6 @@ export const toggleFeaturedVendor = asyncHandler(async (req, res, next) => {
 /* ======================================================
     TOGGLE VERIFY BADGE (Admin)
 ====================================================== */
-
 export const toggleVerifyBadge = asyncHandler(async (req, res, next) => {
   const vendor = await Vendor.findById(req.params.id);
   if (!vendor) return next(new ErrorResponse(404, "Vendor not found"));
@@ -571,7 +588,6 @@ export const toggleVerifyBadge = asyncHandler(async (req, res, next) => {
 /* ======================================================
     UPDATE VENDOR ADMIN NOTES (Admin)
 ====================================================== */
-
 export const updateAdminNotesForVendor = asyncHandler(
   async (req, res, next) => {
     const vendor = await Vendor.findById(req.params.id);
@@ -588,7 +604,6 @@ export const updateAdminNotesForVendor = asyncHandler(
 /* ======================================================
    TOGGLE AUTO-APPROVE PACKAGES SETTING (Admin)
 ====================================================== */
-
 export const toggleAutoApprovePackages = asyncHandler(
   async (req, res, next) => {
     const vendor = await Vendor.findById(req.params.id);

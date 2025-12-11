@@ -58,23 +58,8 @@ const walletSchema = new Schema(
     },
     transactions: [
       {
-        type: {
-          type: String,
-          enum: ["credit", "debit"],
-          required: true,
-        },
-        amount: {
-          type: Number,
-          required: true,
-        },
-        purpose: {
-          type: String,
-          required: true,
-        },
-        date: {
-          type: Date,
-          default: Date.now,
-        },
+        type: Schema.Types.ObjectId,
+        ref: "Transaction",
       },
     ],
   },
