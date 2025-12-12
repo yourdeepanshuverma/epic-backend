@@ -131,7 +131,14 @@ export const getServicePackages = asyncHandler(async (req, res) => {
   if (subcategory) filters["serviceSubCategory"] = subcategory;
 
   const data = await ServicePackage.find(filters)
-    .populate("serviceSubCategory", "name slug")
+    .populate({
+      path: "serviceSubCategory",
+      select: "name slug serviceCategory",
+      populate: {
+        path: "serviceCategory",
+        select: "name slug",
+      },
+    })
     .populate("location.city", "name")
     .populate("location.state", "name")
     .populate("location.country", "name")
