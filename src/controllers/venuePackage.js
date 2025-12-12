@@ -137,7 +137,9 @@ export const createVenuePackage = asyncHandler(async (req, res, next) => {
 export const getVenuePackages = asyncHandler(async (req, res) => {
   const { page = 1, limit = 20, city, category } = req.query;
 
-  const filters = {};
+  const filters = {
+    vendor: req.vendor._id,
+  };
 
   if (city) filters["location.city"] = city;
   if (category) filters["venueCategory"] = category;

@@ -123,7 +123,9 @@ export const createServicePackage = asyncHandler(async (req, res, next) => {
 export const getServicePackages = asyncHandler(async (req, res) => {
   const { page = 1, limit = 20, city, subcategory } = req.query;
 
-  const filters = {};
+  const filters = {
+    vendor: req.vendor._id,
+  };
 
   if (city) filters["location.city"] = city;
   if (subcategory) filters["serviceSubCategory"] = subcategory;
