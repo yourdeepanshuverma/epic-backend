@@ -131,8 +131,8 @@ router.get("/transactions", getVendorHeaders, getVendorWalletTransactions); // t
 //#region VENUE PACKAGE MANAGEMENT ROUTES
 router.get("/venue-categories", getVendorHeaders, getCategoriesForVenuePackage); // tested
 
-router.get("/venue-packages", getVenuePackages); // tested
-router.get("/venue-packages/:id", getVenuePackage); // tested
+router.get("/venue-packages", getVendorHeaders, getVenuePackages); // tested
+router.get("/venue-packages/:id", getVendorHeaders, getVenuePackage); // tested
 
 // CREATE venue package
 router.post(
@@ -259,8 +259,8 @@ router.get(
   getServiceSubCategoriesForPackage
 ); // tested
 
-router.get("/service-packages", getServicePackages); // tested
-router.get("/service-packages/:id", getServicePackage); // tested
+router.get("/service-packages", getVendorHeaders, getServicePackages); // tested
+router.get("/service-packages/:id", getVendorHeaders, getServicePackage); // tested
 
 // CREATE service package
 router.post(
