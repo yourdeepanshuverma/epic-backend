@@ -427,10 +427,11 @@ export const updateServiceAlbumTitles = asyncHandler(async (req, res, next) => {
 });
 
 /* ======================================================
-      ADD PHOTOS TO SERVICE ALBUM
+      ADD PHOTOS + UPDATE TITLE IN SERVICE ALBUM
 ====================================================== */
 export const addPhotosToServiceAlbum = asyncHandler(async (req, res, next) => {
   const { id, albumIndex } = req.params;
+  const { title } = req.body; // 👈 optional album title
 
   const pkg = await ServicePackage.findById(id);
   if (!pkg) return next(new ErrorResponse(404, "Package not found"));
@@ -444,24 +445,34 @@ export const addPhotosToServiceAlbum = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse(400, "No photos uploaded"));
   }
 
-  // Upload new photos
+  const album = pkg.photoAlbums[index];
+
+  /* -----------------------------------------
+     UPDATE TITLE (if provided)
+  ----------------------------------------- */
+  if (title && title.trim()) {
+    album.title = title.trim();
+  }
+
+  /* -----------------------------------------
+     UPLOAD PHOTOS
+  ----------------------------------------- */
   const uploaded = await uploadToCloudinary(req.files);
 
-  // Add to album
-  pkg.photoAlbums[index].images.push(...uploaded);
+  album.images.push(...uploaded);
 
-  // If album has no thumbnail, set first image as thumbnail
-  if (!pkg.photoAlbums[index].thumbnail?.url) {
-    pkg.photoAlbums[index].thumbnail = uploaded[0];
+  /* -----------------------------------------
+     ENSURE THUMBNAIL EXISTS
+  ----------------------------------------- */
+  if (!album.thumbnail || !album.thumbnail.url) {
+    album.thumbnail = uploaded[0]; // 👈 required by schema
   }
 
   await pkg.save();
 
   res
     .status(200)
-    .json(
-      new SuccessResponse(200, "Photos added to album", pkg.photoAlbums[index])
-    );
+    .json(new SuccessResponse(200, "Photos added to album", album));
 });
 
 /* ======================================================

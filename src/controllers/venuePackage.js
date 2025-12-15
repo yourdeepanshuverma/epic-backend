@@ -465,10 +465,11 @@ export const updateAlbumTitles = asyncHandler(async (req, res, next) => {
 });
 
 /* ======================================================
-      ADD PHOTOS TO ALBUM
+      ADD PHOTOS TO ALBUM (WITH OPTIONAL TITLE UPDATE)
 ====================================================== */
 export const addPhotosToAlbum = asyncHandler(async (req, res, next) => {
   const { id, albumIndex } = req.params;
+  const { title } = req.body;
 
   const pkg = await VenuePackage.findById(id);
   if (!pkg) return next(new ErrorResponse(404, "Package not found"));
@@ -482,24 +483,29 @@ export const addPhotosToAlbum = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse(400, "No photos uploaded"));
   }
 
-  // Upload new photos
+  // Upload photos
   const uploaded = await uploadToCloudinary(req.files);
 
-  // Add to album
-  pkg.photoAlbums[index].images.push(...uploaded);
+  const album = pkg.photoAlbums[index];
 
-  // If album has no thumbnail, set first image as thumbnail
-  if (!pkg.photoAlbums[index].thumbnail?.url) {
-    pkg.photoAlbums[index].thumbnail = uploaded[0];
+  // ✅ Update title if provided
+  if (title && title.trim()) {
+    album.title = title;
+  }
+
+  // ✅ Add images
+  album.images.push(...uploaded);
+
+  // ✅ Ensure thumbnail exists
+  if (!album.thumbnail || !album.thumbnail.url) {
+    album.thumbnail = uploaded[0];
   }
 
   await pkg.save();
 
   res
     .status(200)
-    .json(
-      new SuccessResponse(200, "Photos added to album", pkg.photoAlbums[index])
-    );
+    .json(new SuccessResponse(200, "Photos added to album", album));
 });
 
 /* ======================================================
