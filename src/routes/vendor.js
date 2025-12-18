@@ -152,12 +152,12 @@ router.put(
 
 // FAQs for venue package
 router.post("/venue-packages/:id/faqs", getVendorHeaders, addFaq); // tested
-router.put("/venue-packages/:id/faqs/:index", getVendorHeaders, updateFaq); // tested
+router.put("/venue-packages/:id/faqs", getVendorHeaders, updateFaq); // tested
 router.delete("/venue-packages/:id/faqs/:index", getVendorHeaders, deleteFaq); // tested
 
 // Videos for venue package
 router.post("/venue-packages/:id/videos", getVendorHeaders, addVideo); // tested
-router.put("/venue-packages/:id/videos/:index", getVendorHeaders, updateVideo); // tested
+router.put("/venue-packages/:id/videos", getVendorHeaders, updateVideo); // tested
 router.delete(
   "/venue-packages/:id/videos/:index",
   getVendorHeaders,
@@ -280,11 +280,7 @@ router.put(
 
 // FAQs for service package
 router.post("/service-packages/:id/faqs", getVendorHeaders, addServiceFaq); // tested
-router.put(
-  "/service-packages/:id/faqs/:index",
-  getVendorHeaders,
-  updateServiceFaq
-); // tested
+router.put("/service-packages/:id/faqs", getVendorHeaders, updateServiceFaq); // tested
 router.delete(
   "/service-packages/:id/faqs/:index",
   getVendorHeaders,
@@ -294,7 +290,7 @@ router.delete(
 // Videos for service package
 router.post("/service-packages/:id/videos", getVendorHeaders, addServiceVideo); // tested
 router.put(
-  "/service-packages/:id/videos/:index",
+  "/service-packages/:id/videos",
   getVendorHeaders,
   updateServiceVideo
 ); // tested
