@@ -169,7 +169,14 @@ export const getServicePackages = asyncHandler(async (req, res) => {
 ====================================================== */
 export const getServicePackage = asyncHandler(async (req, res, next) => {
   const pkg = await ServicePackage.findById(req.params.id)
-    .populate("serviceSubCategory", "name slug")
+    .populate({
+      path: "serviceSubCategory",
+      select: "name slug serviceCategory",
+      populate: {
+        path: "serviceCategory",
+        select: "name slug",
+      },
+    })
     .populate("location.city", "name")
     .populate("location.state", "name")
     .populate("location.country", "name")
