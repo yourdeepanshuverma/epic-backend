@@ -308,19 +308,15 @@ export const addFaq = asyncHandler(async (req, res, next) => {
     UPDATE FAQ IN PACKAGE
 ====================================================== */
 export const updateFaq = asyncHandler(async (req, res, next) => {
-  const { index } = req.params;
-  const { question, answer } = req.body;
-
   const pkg = await VenuePackage.findById(req.params.id);
   if (!pkg) return next(new ErrorResponse(404, "Package not found"));
 
-  if (!pkg.faqs[index]) return next(new ErrorResponse(404, "FAQ not found"));
+  if (!Array.isArray(req.body.faqs))
+    return next(new ErrorResponse(400, "FAQs must be an array"));
 
-  if (question !== undefined) pkg.faqs[index].question = question;
-  if (answer !== undefined) pkg.faqs[index].answer = answer;
+  pkg.faqs = req.body.faqs;
 
   await pkg.save();
-
   res.status(200).json(new SuccessResponse(200, "FAQ updated", pkg.faqs));
 });
 
@@ -362,17 +358,13 @@ export const addVideo = asyncHandler(async (req, res, next) => {
     UPDATE VIDEO IN PACKAGE
 ====================================================== */
 export const updateVideo = asyncHandler(async (req, res, next) => {
-  const { index } = req.params;
-  const { title, url } = req.body;
-
   const pkg = await VenuePackage.findById(req.params.id);
   if (!pkg) return next(new ErrorResponse(404, "Package not found"));
 
-  if (!pkg.videos[index])
-    return next(new ErrorResponse(404, "Video not found"));
+  if (!Array.isArray(req.body.videos))
+    return next(new ErrorResponse(400, "Videos must be an array"));
 
-  if (title !== undefined) pkg.videos[index].title = title;
-  if (url !== undefined) pkg.videos[index].url = url;
+  pkg.videos = req.body.videos;
 
   await pkg.save();
 
