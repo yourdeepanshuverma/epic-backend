@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { checkAdmin } from "../controllers/admin.js";
+import { checkAdmin, getSystemSettings, updateSystemSettings } from "../controllers/admin.js";
 import {
   createService,
   deleteService,
@@ -41,11 +41,24 @@ import {
 import { getAdminCookies } from "../middlewares/authMiddleware.js";
 import { upload } from "../middlewares/mutler.js";
 
+import {
+  createLeadBundle
+} from "../controllers/lead.js";
+import { migrateVendorCredits } from "../controllers/migration.js";
+
 // import adminAuth from "../middlewares/adminAuth.js"; // optional, if Admin-only
 
 const router = Router();
 
 router.get("/check", getAdminCookies, checkAdmin); // tested
+
+// System Settings
+router.get("/settings/:key", getSystemSettings);
+router.put("/settings/:key", updateSystemSettings);
+router.post("/migrate-credits", migrateVendorCredits);
+
+// Admin Lead Bundle Management
+router.post("/lead-bundles", createLeadBundle);
 
 //#region service routes
 router.get("/services", getAllServices); // tested

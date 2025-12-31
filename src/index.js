@@ -9,6 +9,8 @@ import adminRoutes from "./routes/admin.js";
 import locationRoutes from "./routes/location.js";
 import vendorRoutes from "./routes/vendor.js";
 import transactionRoutes from "./routes/transaction.js";
+import leadRoutes from "./routes/lead.js";
+import publicRoutes from "./routes/public.js";
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -68,6 +70,8 @@ app.use("/api/v1/vendor", vendorRoutes);
 app.use("/api/v1/location", locationRoutes);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/transaction", transactionRoutes);
+app.use("/api/v1/leads", leadRoutes); // Vendor Lead Management
+app.use("/api/v1/public", publicRoutes); // Website Public APIs
 
 // Error Middleware
 app.use(errorMiddleware);

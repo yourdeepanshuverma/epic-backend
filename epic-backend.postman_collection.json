@@ -1,0 +1,396 @@
+{
+	"info": {
+		"_postman_id": "epic-backend-id",
+		"name": "Epic Backend APIs",
+		"description": "Collection for Epic Backend including Leads, Wallet, and Public APIs.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Leads (Vendor)",
+			"item": [
+				{
+					"name": "Get Marketplace Leads",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{EpicDevelopment}}/leads/marketplace",
+							"host": [
+								"{{EpicDevelopment}}"
+							],
+							"path": [
+								"leads",
+								"marketplace"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Buy Lead",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{EpicDevelopment}}/leads/buy/:leadId",
+							"host": [
+								"{{EpicDevelopment}}"
+							],
+							"path": [
+								"leads",
+								"buy",
+								":leadId"
+							],
+							"variable": [
+								{
+									"key": "leadId",
+									"value": "LEAD_ID_HERE"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Leads (Purchased)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{EpicDevelopment}}/leads/my-leads",
+							"host": [
+								"{{EpicDevelopment}}"
+							],
+							"path": [
+								"leads",
+								"my-leads"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Lead Bundles",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{EpicDevelopment}}/leads/bundles",
+							"host": [
+								"{{EpicDevelopment}}"
+							],
+							"path": [
+								"leads",
+								"bundles"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Buy Lead Bundle",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"bundleId\": \"BUNDLE_ID_HERE\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{EpicDevelopment}}/leads/buy-bundle",
+							"host": [
+								"{{EpicDevelopment}}"
+							],
+							"path": [
+								"leads",
+								"buy-bundle"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Wallet & Transactions",
+			"item": [
+				{
+					"name": "Get Wallet Balance",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{EpicDevelopment}}/vendor/balance",
+							"host": [
+								"{{EpicDevelopment}}"
+							],
+							"path": [
+								"vendor",
+								"balance"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Wallet Transactions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{EpicDevelopment}}/vendor/transactions",
+							"host": [
+								"{{EpicDevelopment}}"
+							],
+							"path": [
+								"vendor",
+								"transactions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Razorpay Key",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{EpicDevelopment}}/transaction/get-razorpay-key",
+							"host": [
+								"{{EpicDevelopment}}"
+							],
+							"path": [
+								"transaction",
+								"get-razorpay-key"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Razorpay Order (Add Money)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"amount\": 500\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{EpicDevelopment}}/transaction/create-order",
+							"host": [
+								"{{EpicDevelopment}}"
+							],
+							"path": [
+								"transaction",
+								"create-order"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Verify Razorpay Payment",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"razorpay_order_id\": \"order_...\",\n    \"razorpay_payment_id\": \"pay_...\",\n    \"razorpay_signature\": \"...\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{EpicDevelopment}}/transaction/verify-payment",
+							"host": [
+								"{{EpicDevelopment}}"
+							],
+							"path": [
+								"transaction",
+								"verify-payment"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Public (Website)",
+			"item": [
+				{
+					"name": "Get Venue Categories",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{EpicDevelopment}}/public/venue-categories",
+							"host": [
+								"{{EpicDevelopment}}"
+							],
+							"path": [
+								"public",
+								"venue-categories"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Service Categories",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{EpicDevelopment}}/public/service-categories",
+							"host": [
+								"{{EpicDevelopment}}"
+							],
+							"path": [
+								"public",
+								"service-categories"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Service SubCategories",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{EpicDevelopment}}/public/service-categories/:categoryId/sub-categories",
+							"host": [
+								"{{EpicDevelopment}}"
+							],
+							"path": [
+								"public",
+								"service-categories",
+								":categoryId",
+								"sub-categories"
+							],
+							"variable": [
+								{
+									"key": "categoryId",
+									"value": "CAT_ID"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Venue Packages",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{EpicDevelopment}}/public/venue-packages",
+							"host": [
+								"{{EpicDevelopment}}"
+							],
+							"path": [
+								"public",
+								"venue-packages"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Venue Package Detail",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{EpicDevelopment}}/public/venue-packages/:slug",
+							"host": [
+								"{{EpicDevelopment}}"
+							],
+							"path": [
+								"public",
+								"venue-packages",
+								":slug"
+							],
+							"variable": [
+								{
+									"key": "slug",
+									"value": "some-slug"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Service Packages",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{EpicDevelopment}}/public/service-packages",
+							"host": [
+								"{{EpicDevelopment}}"
+							],
+							"path": [
+								"public",
+								"service-packages"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Lead Inquiry",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"John Doe\",\n    \"email\": \"john@example.com\",\n    \"phone\": \"9876543210\",\n    \"message\": \"Interested in this package\",\n    \"type\": \"venue\",\n    \"packageId\": \"PKG_ID\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{EpicDevelopment}}/public/inquiry",
+							"host": [
+								"{{EpicDevelopment}}"
+							],
+							"path": [
+								"public",
+								"inquiry"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "EpicDevelopment",
+			"value": "http://localhost:3000/api/v1",
+			"type": "string"
+		}
+	]
+}

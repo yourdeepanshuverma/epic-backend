@@ -182,7 +182,14 @@ export const getVenuePackages = asyncHandler(async (req, res) => {
 ====================================================== */
 export const getVenuePackage = asyncHandler(async (req, res, next) => {
   const pkg = await VenuePackage.findById(req.params.id)
-    .populate({ path: "venueCategory", select: "name slug" })
+    .populate({ 
+      path: "venueCategory", 
+      select: "name slug services",
+      populate: {
+        path: "services",
+        select: "name icon type"
+      }
+    })
     .populate({ path: "location.city", select: "name" })
     .populate({ path: "location.state", select: "name" })
     .populate({ path: "location.country", select: "name" })

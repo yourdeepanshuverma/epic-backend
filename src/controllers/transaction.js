@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import asyncHandler from "../utils/asyncHandler.js  ";
+import asyncHandler from "../utils/asyncHandler.js";
 import ErrorResponse from "../utils/ErrorResponse.js";
 import SuccessResponse from "../utils/SuccessResponse.js";
 import Transaction from "../models/Transaction.js";
@@ -58,8 +58,8 @@ const verifyRazorpayPayment = asyncHandler(async (req, res, next) => {
       return next(new ErrorResponse(400, "Missing required fields"));
     }
 
-    const vender = await Vendor.findById(req.vendor._id);
-    if (!vender) {
+    const vendor = await Vendor.findById(req.vendor._id);
+    if (!vendor) {
       return next(new ErrorResponse(404, "Vendor not found"));
     }
 
@@ -86,7 +86,7 @@ const verifyRazorpayPayment = asyncHandler(async (req, res, next) => {
 
     // Create Transaction entry
     const transaction = await Transaction.create({
-      vendor: vender._id,
+      vendor: vendor._id,
       type: "credit",
       gateway: "razorpay",
       orderId: normalized.orderId,
@@ -95,7 +95,7 @@ const verifyRazorpayPayment = asyncHandler(async (req, res, next) => {
       currency: normalized.raw.currency,
       status: normalized.status,
       method: normalized.method,
-      raw: normalized.raw,
+      raw_response: normalized.raw,
       meta: {
         ip: req.ip,
         device: req.headers["user-agent"],
@@ -106,18 +106,33 @@ const verifyRazorpayPayment = asyncHandler(async (req, res, next) => {
       return next(new ErrorResponse(500, "Failed to record transaction"));
     }
 
-    // Update vendor balance
-    vender.balance += transaction.amount;
-    vender.transactions.push(transaction._id);
-    await vender.save();
+    // Update vendor wallet
+    vendor.wallet.balance += transaction.amount;
+    vendor.wallet.transactions.push(transaction._id);
+    await vendor.save();
 
     res.status(200).json(
       new SuccessResponse(200, "Payment verified successfully", {
         transaction,
+        updatedBalance: vendor.wallet.balance,
       })
     );
 
-    await sendEmail(req.vendor.email);
+    // Send email notification
+    await sendEmail(
+      req.vendor.email,
+      "Wallet Top-up Successful",
+      `<h2>Payment Successful</h2>
+       <p>Dear ${vendor.vendorName},</p>
+       <p>You have successfully added <strong>${
+         transaction.currency
+       } ${transaction.amount}</strong> to your wallet.</p>
+       <p>Transaction ID: ${transaction.paymentId}</p>
+       <p>Current Balance: ${transaction.currency} ${vendor.wallet.balance}</p>
+       <br>
+       <p>Thank you,</p>
+       <p>Team Cabnex</p>`
+    );
   } catch (err) {
     console.error(err);
     next(new ErrorResponse(500, "Payment verification failed"));

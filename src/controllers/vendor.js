@@ -210,7 +210,7 @@ export const createVendor = asyncHandler(async (req, res, next) => {
 ====================================================== */
 export const getVendorProfile = asyncHandler(async (req, res, next) => {
   const vendor = await Vendor.findById(req.vendor?._id).select(
-    "-password -wallet -featured -status -verifiedBadge -adminNotes -autoApprovePackages -lastActive -__v"
+    "-password -featured -status -verifiedBadge -adminNotes -autoApprovePackages -lastActive -__v"
   );
 
   if (!vendor) return next(new ErrorResponse(404, "Vendor not found"));
@@ -349,9 +349,10 @@ export const vendorLogin = asyncHandler(async (req, res, next) => {
   const token = generateToken(vendor._id);
 
   if (vendor.role === "admin") {
-    return res.status(200).cookie("adminToken", token, cookieOptions).json(
+    return res.status(200).json(
       new SuccessResponse(200, "Welcome Admin", {
         vendor,
+        token,
       })
     );
   }

@@ -189,6 +189,14 @@ const vendorSchema = new Schema(
     },
 
     // ----------------------
+    // LEAD SYSTEM
+    // ----------------------
+    leadCredits: {
+      type: Number,
+      default: 0,
+    },
+
+    // ----------------------
     // ADMIN CONTROLS
     // ----------------------
 

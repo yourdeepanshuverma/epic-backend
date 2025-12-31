@@ -16,7 +16,7 @@ const transactionSchema = new Schema(
 
     gateway: {
       type: String,
-      enum: ["razorpay", "stripe", "cashfree", "paytm", "phonepe"],
+      enum: ["razorpay", "stripe", "cashfree", "paytm", "phonepe", "internal"],
       required: true,
     },
 
