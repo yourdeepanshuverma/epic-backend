@@ -11,6 +11,7 @@ import ServicePackage from "../models/ServicePackage.js"; // Added import
 import extractIdFromSlug from "../utils/extractIdFromSlug.js";
 import mongoose from "mongoose"; // Added import
 import { redactPhoneNumber } from "../utils/helper.js";
+import SystemSetting from "../models/SystemSetting.js";
 
 // GET ALL VENUE CATEGORIES - public
 export const getAllVenueCategories = asyncHandler(async (req, res) => {
@@ -187,11 +188,13 @@ export const getServicePackage = asyncHandler(async (req, res, next) => {
     .json(new SuccessResponse(200, "Service package details", pkg));
 });
 
+import axios from "axios"; // Added import
+
 /* ======================================================
     PUBLIC: CREATE LEAD (Website Inquiry)
 ====================================================== */
 export const createLead = asyncHandler(async (req, res, next) => {
-  const {
+  let {
     name,
     email,
     phone,
@@ -206,6 +209,50 @@ export const createLead = asyncHandler(async (req, res, next) => {
 
   if (!name || !phone) {
     return next(new ErrorResponse(400, "Name and Phone are required"));
+  }
+
+  // 0. Normalize Location (Google Maps Geocoding)
+  let structuredLocation = { city: "", state: "" };
+  
+  if (typeof location === "string" && location.trim().length > 0) {
+      try {
+          const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+          if (apiKey) {
+              const geoRes = await axios.get(`https://maps.googleapis.com/maps/api/geocode/json`, {
+                  params: { address: location, key: apiKey }
+              });
+              
+              if (geoRes.data.status === "OK" && geoRes.data.results.length > 0) {
+                  const components = geoRes.data.results[0].address_components;
+                  let city = "";
+                  let state = "";
+
+                  components.forEach(comp => {
+                      if (comp.types.includes("locality")) city = comp.long_name;
+                      else if (!city && comp.types.includes("administrative_area_level_2")) city = comp.long_name; // District as fallback
+                      
+                      if (comp.types.includes("administrative_area_level_1")) state = comp.long_name;
+                  });
+
+                  // If City found, use it. If not, fallback to original string in City field for searchability
+                  structuredLocation = {
+                      city: city || location, 
+                      state: state,
+                      fullAddress: geoRes.data.results[0].formatted_address // Save full address
+                  };
+              } else {
+                  structuredLocation = { city: location, state: "", fullAddress: location };
+              }
+          } else {
+              // No API Key, treat string as city
+              structuredLocation = { city: location, state: "", fullAddress: location };
+          }
+      } catch (err) {
+          console.error("Geocoding Error:", err.message);
+          structuredLocation = { city: location, state: "", fullAddress: location };
+      }
+  } else if (typeof location === "object") {
+      structuredLocation = location;
   }
 
   // 1. Detect Device Type
@@ -228,29 +275,82 @@ export const createLead = asyncHandler(async (req, res, next) => {
   const budgetNum = Number(budget) || 0;
   const guestNum = Number(guestCount) || 0;
 
-  if (budgetNum >= 1000000 || guestNum >= 500) {
-    category = "Elite";
-    price = 150;
-    tags.push("High Value");
-  } else if (budgetNum >= 300000 || guestNum >= 200) {
-    category = "Premium";
-    price = 100;
+  try {
+    const setting = await SystemSetting.findOne({ key: "lead_costs" });
+    if (setting && setting.value) {
+      const costs = setting.value;
+      // Convert to array and sort by minBudget descending (highest criteria first)
+      const tiers = Object.keys(costs).map(key => ({
+        key,
+        ...costs[key]
+      })).sort((a, b) => (b.minBudget || 0) - (a.minBudget || 0));
+
+      for (const tier of tiers) {
+        const tierMinBudget = Number(tier.minBudget) || 0;
+        const tierMinGuests = Number(tier.minGuests) || 0;
+
+        if (budgetNum >= tierMinBudget && guestNum >= tierMinGuests) {
+          category = tier.label || tier.key.charAt(0).toUpperCase() + tier.key.slice(1);
+          price = Number(tier.amount) || 50;
+          if (tier.key === 'elite' || tier.minBudget >= 1000000) tags.push("High Value");
+          break; // Stop at the highest matching tier
+        }
+      }
+    } else {
+        // Fallback Logic
+        if (budgetNum >= 1000000 || guestNum >= 500) {
+            category = "Elite";
+            price = 150;
+            tags.push("High Value");
+        } else if (budgetNum >= 300000 || guestNum >= 200) {
+            category = "Premium";
+            price = 100;
+        }
+    }
+  } catch (err) {
+      console.error("Error fetching lead rules:", err);
+      // Fallback Logic
+      if (budgetNum >= 1000000 || guestNum >= 500) {
+        category = "Elite";
+        price = 150;
+        tags.push("High Value");
+      } else if (budgetNum >= 300000 || guestNum >= 200) {
+        category = "Premium";
+        price = 100;
+      }
   }
 
   // 3. Redact Contact Info from Message
   const cleanMessage = redactPhoneNumber(message);
 
+  // 4. Determine Business Category Name (New logic to store type explicitly)
+  let bizCat = "General Inquiry";
+  try {
+    if (interestedInPackage && packageType) {
+      if (packageType === "VenuePackage") {
+        const pkg = await VenuePackage.findById(interestedInPackage).populate("venueCategory");
+        if (pkg && pkg.venueCategory) bizCat = pkg.venueCategory.name;
+      } else if (packageType === "ServicePackage") {
+        const pkg = await ServicePackage.findById(interestedInPackage).populate("serviceSubCategory");
+        if (pkg && pkg.serviceSubCategory) bizCat = pkg.serviceSubCategory.name;
+      }
+    }
+  } catch (err) {
+    console.error("Error determining business category:", err);
+  }
+
   const lead = await Lead.create({
     name,
     email,
     phone,
-    location,
+    location: structuredLocation,
     eventDate,
     guestCount,
     budget,
     message: cleanMessage,
     interestedInPackage,
     packageType,
+    businessCategory: bizCat,
     category,
     price,
     deviceType,

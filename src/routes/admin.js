@@ -1,5 +1,13 @@
 import { Router } from "express";
-import { checkAdmin, getSystemSettings, updateSystemSettings } from "../controllers/admin.js";
+import { 
+  checkAdmin, 
+  getSystemSettings, 
+  updateSystemSettings,
+  getAdminVenuePackages,
+  getAdminServicePackages,
+  updateVenuePackageStatus,
+  updateServicePackageStatus
+} from "../controllers/admin.js";
 import {
   createService,
   deleteService,
@@ -59,6 +67,13 @@ router.post("/migrate-credits", migrateVendorCredits);
 
 // Admin Lead Bundle Management
 router.post("/lead-bundles", createLeadBundle);
+
+// --- ADMIN PACKAGE MANAGEMENT ---
+router.get("/venue-packages", getAdminVenuePackages);
+router.put("/venue-packages/:id/status", updateVenuePackageStatus);
+
+router.get("/service-packages", getAdminServicePackages);
+router.put("/service-packages/:id/status", updateServicePackageStatus);
 
 //#region service routes
 router.get("/services", getAllServices); // tested

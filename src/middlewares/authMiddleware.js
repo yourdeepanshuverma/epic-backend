@@ -6,7 +6,6 @@ import ErrorResponse from "../utils/ErrorResponse.js";
 // Authentication using Headers
 const getVendorHeaders = asyncHandler(async (req, _, next) => {
   let token;
-  console.log(token);
 
   if (
     req.headers.authorization &&

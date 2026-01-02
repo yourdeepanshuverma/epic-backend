@@ -1,7 +1,7 @@
 import asyncHandler from "../utils/asyncHandler.js";
 import ErrorResponse from "../utils/ErrorResponse.js";
 import { generateOtp } from "../utils/helper.js";
-import redis from "../utils/redisClient.js";
+import redis from "../config/redisClient.js";
 import { sendOtpSms } from "../utils/smsService.js";
 import SuccessResponse from "../utils/SuccessResponse.js";
 

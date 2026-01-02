@@ -58,7 +58,6 @@ export const updateCountry = asyncHandler(async (req, res, next) => {
   const country = await Country.findById(id);
   if (!country) return next(new ErrorResponse(404, "Country not found"));
 
-  console.log(req.body.name);
   if (req.body?.name) {
     const exists = await Country.findOne({
       name: req.body.name.toLowerCase(),

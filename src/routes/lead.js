@@ -5,12 +5,16 @@ import {
   buyLead,
   getMyLeads,
   getLeadBundles,
-  buyLeadBundle
+  buyLeadBundle,
+  getLeadFilterOptions
 } from "../controllers/lead.js";
 
 const router = Router();
 
 router.use(getVendorHeaders);
+
+// Filters
+router.get("/filters", getLeadFilterOptions);
 
 // Marketplace
 router.get("/marketplace", getMarketplaceLeads); // Show masked leads

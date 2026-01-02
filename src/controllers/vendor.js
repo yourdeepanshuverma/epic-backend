@@ -240,7 +240,7 @@ export const updateVendor = asyncHandler(async (req, res, next) => {
     req.body.coverImage = uploadedCoverImage[0];
   }
 
-  const docs = req.files;
+  const docs = req.files || {};
 
   const filesToUpload = [];
   const fileKeyMap = [];
@@ -262,18 +262,20 @@ export const updateVendor = asyncHandler(async (req, res, next) => {
     fileKeyMap.push("registrationProof");
   }
 
-  const uploadedResults = await uploadToCloudinary(filesToUpload);
+  if (filesToUpload.length > 0) {
+      const uploadedResults = await uploadToCloudinary(filesToUpload);
 
-  const finalDocumentObj = {};
-  uploadedResults.forEach((upload, index) => {
-    const key = fileKeyMap[index];
-    finalDocumentObj[key] = upload;
-  });
+      const finalDocumentObj = {};
+      uploadedResults.forEach((upload, index) => {
+        const key = fileKeyMap[index];
+        finalDocumentObj[key] = upload;
+      });
 
-  req.body.documents = {
-    ...(vendor.documents || {}),
-    ...finalDocumentObj,
-  };
+      req.body.documents = {
+        ...(vendor.documents || {}),
+        ...finalDocumentObj,
+      };
+  }
 
   // Prevent vendor from updating protected admin fields
   const blockedFields = [
@@ -297,6 +299,63 @@ export const updateVendor = asyncHandler(async (req, res, next) => {
     .status(200)
     .json(new SuccessResponse(200, "Vendor profile updated", vendor));
 });
+
+/* ======================================================
+   PHONE UPDATE OTP FLOW
+====================================================== */
+export const sendPhoneUpdateOtp = asyncHandler(async (req, res, next) => {
+  const { phone } = req.body;
+  if (!phone || !/^[6-9]\d{9}$/.test(phone)) {
+    return next(new ErrorResponse(400, "Invalid phone number"));
+  }
+
+  // Check if phone is already used by another vendor
+  const existingVendor = await Vendor.findOne({ phone });
+  if (existingVendor) {
+    return next(new ErrorResponse(400, "Phone number already in use"));
+  }
+
+  // Prevent spamming
+  if (await redis.get(`phone_update_otp:${req.vendor._id}`)) {
+    return next(new ErrorResponse(400, "OTP already sent. Please wait."));
+  }
+
+  const otp = generateOtp();
+  // Store OTP with new phone in redis (expires in 5m)
+  // Format: "OTP:NEW_PHONE"
+  await redis.setex(`phone_update_otp:${req.vendor._id}`, 300, `${otp}:${phone}`);
+
+  await sendOtpSms(phone, otp, "phone number update");
+
+  return res.status(200).json(new SuccessResponse(200, "OTP sent successfully"));
+});
+
+export const verifyPhoneUpdateOtp = asyncHandler(async (req, res, next) => {
+  const { otp } = req.body;
+  const storedData = await redis.get(`phone_update_otp:${req.vendor._id}`);
+
+  if (!storedData) {
+    return next(new ErrorResponse(400, "OTP expired or invalid"));
+  }
+
+  const [storedOtp, newPhone] = storedData.split(":");
+
+  if (storedOtp !== otp) {
+    return next(new ErrorResponse(400, "Invalid OTP"));
+  }
+
+  // Update vendor phone
+  const vendor = await Vendor.findById(req.vendor._id);
+  vendor.phone = newPhone;
+  await vendor.save();
+
+  await redis.del(`phone_update_otp:${req.vendor._id}`);
+
+  return res
+    .status(200)
+    .json(new SuccessResponse(200, "Phone number updated successfully"));
+});
+
 
 /* ======================================================
     GET VENDOR WALLET BALANCE
@@ -391,15 +450,18 @@ export const vendorLogin = asyncHandler(async (req, res, next) => {
 }
 */
 export const googleAuth = asyncHandler(async (req, res, next) => {
-  const { idToken } = req.body;
+  const { code } = req.body;
 
-  if (!idToken) {
-    return next(new ErrorResponse(400, "Google token missing"));
+  if (!code) {
+    return next(new ErrorResponse(400, "Google authorization code missing"));
   }
+
+  // Exchange code for tokens
+  const { tokens } = await client.getToken(code);
 
   // Verify Google token
   const ticket = await client.verifyIdToken({
-    idToken,
+    idToken: tokens.id_token,
     audience: process.env.GOOGLE_CLIENT_ID,
   });
 

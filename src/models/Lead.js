@@ -21,6 +21,7 @@ const leadSchema = new Schema(
     location: {
       city: String,
       state: String,
+      fullAddress: String, // Added full address
     },
     eventDate: Date,
     guestCount: Number,
@@ -44,12 +45,16 @@ const leadSchema = new Schema(
       enum: ["VenuePackage", "ServicePackage"],
     },
 
+    businessCategory: {
+      type: String,
+      default: "General Inquiry",
+    },
+
     // ----------------------
     // LEAD CLASSIFICATION
     // ----------------------
     category: {
       type: String,
-      enum: ["Standard", "Premium", "Elite"],
       default: "Standard",
     },
 
@@ -83,6 +88,7 @@ const leadSchema = new Schema(
           type: String,
           enum: ["wallet", "credit"], // Wallet Balance or Lead Credit
         },
+        meta: Schema.Types.Mixed, // For storing credit costs, etc.
       },
     ],
   },

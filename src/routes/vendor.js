@@ -10,6 +10,8 @@ import {
   resetPassword,
   getVendorWalletBalance,
   getVendorWalletTransactions,
+  sendPhoneUpdateOtp,
+  verifyPhoneUpdateOtp,
 } from "../controllers/vendor.js";
 import { createArrayUpload, upload } from "../middlewares/mutler.js";
 import { getVendorHeaders } from "../middlewares/authMiddleware.js";
@@ -124,6 +126,10 @@ router
 
 router.get("/balance", getVendorHeaders, getVendorWalletBalance); // tested
 router.get("/transactions", getVendorHeaders, getVendorWalletTransactions); // tested
+
+// Phone Update OTP Flow
+router.post("/send-phone-update-otp", getVendorHeaders, sendPhoneUpdateOtp);
+router.post("/verify-phone-update-otp", getVendorHeaders, verifyPhoneUpdateOtp);
 
 /*============================================================================
     VENUE PACKAGE ROUTES

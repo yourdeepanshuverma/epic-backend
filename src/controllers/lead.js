@@ -6,6 +6,11 @@ import LeadBundle from "../models/LeadBundle.js";
 import Transaction from "../models/Transaction.js";
 import Vendor from "../models/Vendor.js";
 import SystemSetting from "../models/SystemSetting.js";
+import VenuePackage from "../models/VenuePackage.js"; // Added for population
+import ServicePackage from "../models/ServicePackage.js"; // Added for population
+import VenueCategory from "../models/VenueCategory.js"; // Added for population
+import ServiceSubCategory from "../models/ServiceSubCategory.js"; // Added for population
+import mongoose from "mongoose";
 
 // Constant: Default price per lead if bought via Wallet directly
 const PRICE_PER_LEAD = 50; 
@@ -15,7 +20,7 @@ const PRICE_PER_LEAD = 50;
 ====================================================== */
 export const getMarketplaceLeads = asyncHandler(async (req, res) => {
   const vendorId = req.vendor._id;
-  const { page = 1, limit = 20, city } = req.query;
+  const { page = 1, limit = 20, city, businessCategory } = req.query;
 
   const filter = {
     // Exclude leads already purchased by this vendor
@@ -23,6 +28,7 @@ export const getMarketplaceLeads = asyncHandler(async (req, res) => {
   };
   
   if (city) filter["location.city"] = new RegExp(city, "i");
+  if (businessCategory) filter.businessCategory = businessCategory;
 
   const leads = await Lead.find(filter)
     .populate({
@@ -40,14 +46,6 @@ export const getMarketplaceLeads = asyncHandler(async (req, res) => {
 
   // Mask details (They will always be unpurchased here due to filter)
   const processedLeads = leads.map((lead) => {
-    // Extract Business Category Name
-    let businessCategory = "General Inquiry";
-    if (lead.interestedInPackage) {
-        businessCategory = lead.interestedInPackage.venueCategory?.name || 
-                           lead.interestedInPackage.serviceSubCategory?.name || 
-                           "General Inquiry";
-    }
-
     return {
       _id: lead._id,
       name: lead.name,
@@ -58,7 +56,7 @@ export const getMarketplaceLeads = asyncHandler(async (req, res) => {
       message: lead.message,
       createdAt: lead.createdAt,
       isPurchased: false, // Always false in Marketplace now
-      businessCategory,
+      businessCategory: lead.businessCategory || "General Inquiry",
       category: lead.category,
       price: lead.price,
       // Masked Info
@@ -102,27 +100,25 @@ export const buyLead = asyncHandler(async (req, res, next) => {
   }
 
   const vendor = await Vendor.findById(vendorId);
-  const leadCategory = lead.category.toLowerCase(); // standard, premium, elite
+  const leadCategory = (lead.category || "standard").toLowerCase(); // standard, premium, elite
 
   // LOGIC: Use Credits or Wallet
   if (useCredits) {
     // 1. Fetch Dynamic Cost
     const settings = await SystemSetting.findOne({ key: "lead_costs" });
-    const costs = settings ? settings.value : { standard: 10, premium: 25, elite: 50 }; // Default fallback
+    const costs = settings ? settings.value : {};
     
-    const cost = costs[leadCategory] || 10; // Default to standard cost if category unknown
+    // Extract Cost from Tier Object
+    // Structure: { standard: { credits: 10, amount: 50, ... }, ... }
+    const tierData = costs[leadCategory] || costs["standard"];
+    // If legacy format (direct number), handle it, otherwise extracting .credits
+    let rawCost = (typeof tierData === 'object') ? tierData.credits : tierData;
+    
+    let cost = Number(rawCost);
+    if (isNaN(cost)) cost = 10;
 
-    // 2. Check Balance (Universal Credits)
-    // Handle migration edge case: if vendor.leadCredits is an object, try to convert or fail gracefully
-    let availableCredits = 0;
-    if (typeof vendor.leadCredits === 'number') {
-        availableCredits = vendor.leadCredits;
-    } else if (typeof vendor.leadCredits === 'object') {
-        // Simple on-the-fly migration for this request only (doesn't save to DB yet)
-        availableCredits = (vendor.leadCredits.standard || 0) * 10 + 
-                           (vendor.leadCredits.premium || 0) * 25 + 
-                           (vendor.leadCredits.elite || 0) * 50;
-    }
+    // 2. Check Balance (Universal Credits - Simple Number)
+    const availableCredits = Number(vendor.leadCredits) || 0;
 
     if (availableCredits < cost) {
       return next(
@@ -134,11 +130,15 @@ export const buyLead = asyncHandler(async (req, res, next) => {
     }
 
     // 3. Deduct Credits
-    // If schema is still object in DB but we want to save number, we might need a migration script.
-    // For now, let's assume we are forcefully updating to Number.
-    // Since we changed the schema, Mongoose might cast this automatically if we just set it.
-    vendor.leadCredits = availableCredits - cost;
-    await vendor.save();
+    // Use $inc for atomic update - most robust way
+    const updatedVendor = await Vendor.findByIdAndUpdate(
+      vendorId,
+      { $inc: { leadCredits: -cost } },
+      { new: true }
+    );
+    
+    // Update local variable for response
+    vendor.leadCredits = updatedVendor.leadCredits;
 
     // Record Purchase on Lead
     lead.purchasedBy.push({
@@ -149,14 +149,12 @@ export const buyLead = asyncHandler(async (req, res, next) => {
     });
   } else {
     // Pay with Wallet (Dynamic Price)
+    // 1. Check Balance locally first (optimization)
     if (vendor.wallet.balance < lead.price) {
       return next(new ErrorResponse(400, "Insufficient wallet balance"));
     }
 
-    // Deduct Wallet
-    vendor.wallet.balance -= lead.price;
-
-    // Create Transaction Record
+    // 2. Create Transaction Record
     const transaction = await Transaction.create({
       vendor: vendorId,
       type: "debit",
@@ -168,8 +166,29 @@ export const buyLead = asyncHandler(async (req, res, next) => {
       meta: { description: `Purchased ${lead.category} Lead ${leadId}` },
     });
 
-    vendor.wallet.transactions.push(transaction._id);
-    await vendor.save();
+    // 3. Atomic Update: Deduct Balance & Push Transaction
+    const updatedVendor = await Vendor.findByIdAndUpdate(
+        vendorId,
+        { 
+            $inc: { "wallet.balance": -lead.price },
+            $push: { "wallet.transactions": transaction._id }
+        },
+        { new: true }
+    );
+
+    // Double check if balance went negative (race condition check)
+    if (updatedVendor.wallet.balance < 0) {
+        // Rollback (Critical failure safety)
+        await Vendor.findByIdAndUpdate(vendorId, { 
+            $inc: { "wallet.balance": lead.price },
+            $pull: { "wallet.transactions": transaction._id }
+        });
+        await Transaction.findByIdAndDelete(transaction._id);
+        return next(new ErrorResponse(400, "Insufficient wallet balance (transaction failed)"));
+    }
+
+    // Update local variable for response
+    vendor.wallet.balance = updatedVendor.wallet.balance;
 
     // Record Purchase on Lead
     lead.purchasedBy.push({
@@ -213,18 +232,10 @@ export const getMyLeads = asyncHandler(async (req, res) => {
 
   // Process leads to match frontend structure
   const processedLeads = leads.map((lead) => {
-    // Extract Business Category Name
-    let businessCategory = "General Inquiry";
-    if (lead.interestedInPackage) {
-        businessCategory = lead.interestedInPackage.venueCategory?.name || 
-                           lead.interestedInPackage.serviceSubCategory?.name || 
-                           "General Inquiry";
-    }
-
     return {
       ...lead,
       isPurchased: true, // Explicitly set for UI to show "Unlocked" state
-      businessCategory
+      businessCategory: lead.businessCategory || "General Inquiry"
     };
   });
 
@@ -262,21 +273,20 @@ export const buyLeadBundle = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse(400, "Insufficient wallet balance"));
   }
 
-  // Deduct Wallet
-  vendor.wallet.balance -= bundle.price;
+  // Deduct Wallet & Add Credits Atomically
+  const updatedVendor = await Vendor.findByIdAndUpdate(
+      vendorId,
+      { 
+          $inc: { 
+              "wallet.balance": -bundle.price,
+              "leadCredits": bundle.credits 
+          }
+      },
+      { new: true }
+  );
 
-  // Add Universal Credits (handle legacy object if present)
-  let currentCredits = 0;
-  if (typeof vendor.leadCredits === 'number') {
-      currentCredits = vendor.leadCredits;
-  } else if (typeof vendor.leadCredits === 'object') {
-      // Lazy migration
-      currentCredits = (vendor.leadCredits.standard || 0) * 10 + 
-                       (vendor.leadCredits.premium || 0) * 25 + 
-                       (vendor.leadCredits.elite || 0) * 50;
-  }
-
-  vendor.leadCredits = currentCredits + bundle.credits;
+  vendor.leadCredits = updatedVendor.leadCredits;
+  vendor.wallet.balance = updatedVendor.wallet.balance;
 
   // Create Transaction
   const transaction = await Transaction.create({
@@ -293,7 +303,7 @@ export const buyLeadBundle = asyncHandler(async (req, res, next) => {
   });
 
   vendor.wallet.transactions.push(transaction._id);
-  await vendor.save();
+  await vendor.save(); // Just to save transaction ref, balance is already updated
 
   res.status(200).json(
     new SuccessResponse(200, "Bundle purchased successfully", {
@@ -309,4 +319,12 @@ export const buyLeadBundle = asyncHandler(async (req, res, next) => {
 export const createLeadBundle = asyncHandler(async(req, res) => {
     const bundle = await LeadBundle.create(req.body);
     res.status(201).json(new SuccessResponse(201, "Bundle created", bundle));
+});
+
+/* ======================================================
+    COMMON: GET FILTER OPTIONS (Business Categories)
+====================================================== */
+export const getLeadFilterOptions = asyncHandler(async (req, res) => {
+  const categories = await Lead.distinct("businessCategory");
+  res.status(200).json(new SuccessResponse(200, "Filter options", { categories }));
 });
