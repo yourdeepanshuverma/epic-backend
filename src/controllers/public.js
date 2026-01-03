@@ -16,7 +16,7 @@ import SystemSetting from "../models/SystemSetting.js";
 // GET ALL VENUE CATEGORIES - public
 export const getAllVenueCategories = asyncHandler(async (req, res) => {
   const categories = await VenueCategory.find()
-    .select("name image slug")
+    .select("name image slug description")
     .sort({ createdAt: -1 });
 
   return res
@@ -27,7 +27,7 @@ export const getAllVenueCategories = asyncHandler(async (req, res) => {
 // GET ALL SERVICE CATEGORIES - public
 export const getAllServiceCategories = asyncHandler(async (req, res) => {
   const categories = await ServiceCategory.find()
-    .select("name image slug")
+    .select("name image slug description")
     .sort({ createdAt: -1 });
 
   return res
@@ -43,7 +43,7 @@ export const getServiceSubCategoriesByCategory = asyncHandler(
     const subCategories = await ServiceSubCategory.find({
       serviceCategory: categoryId,
     })
-      .select("name image slug services")
+      .select("name image slug description services")
       .populate("services", "name icon");
 
     return res
@@ -213,46 +213,62 @@ export const createLead = asyncHandler(async (req, res, next) => {
 
   // 0. Normalize Location (Google Maps Geocoding)
   let structuredLocation = { city: "", state: "" };
-  
+
   if (typeof location === "string" && location.trim().length > 0) {
-      try {
-          const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-          if (apiKey) {
-              const geoRes = await axios.get(`https://maps.googleapis.com/maps/api/geocode/json`, {
-                  params: { address: location, key: apiKey }
-              });
-              
-              if (geoRes.data.status === "OK" && geoRes.data.results.length > 0) {
-                  const components = geoRes.data.results[0].address_components;
-                  let city = "";
-                  let state = "";
-
-                  components.forEach(comp => {
-                      if (comp.types.includes("locality")) city = comp.long_name;
-                      else if (!city && comp.types.includes("administrative_area_level_2")) city = comp.long_name; // District as fallback
-                      
-                      if (comp.types.includes("administrative_area_level_1")) state = comp.long_name;
-                  });
-
-                  // If City found, use it. If not, fallback to original string in City field for searchability
-                  structuredLocation = {
-                      city: city || location, 
-                      state: state,
-                      fullAddress: geoRes.data.results[0].formatted_address // Save full address
-                  };
-              } else {
-                  structuredLocation = { city: location, state: "", fullAddress: location };
-              }
-          } else {
-              // No API Key, treat string as city
-              structuredLocation = { city: location, state: "", fullAddress: location };
+    try {
+      const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+      if (apiKey) {
+        const geoRes = await axios.get(
+          `https://maps.googleapis.com/maps/api/geocode/json`,
+          {
+            params: { address: location, key: apiKey },
           }
-      } catch (err) {
-          console.error("Geocoding Error:", err.message);
-          structuredLocation = { city: location, state: "", fullAddress: location };
+        );
+
+        if (geoRes.data.status === "OK" && geoRes.data.results.length > 0) {
+          const components = geoRes.data.results[0].address_components;
+          let city = "";
+          let state = "";
+
+          components.forEach((comp) => {
+            if (comp.types.includes("locality")) city = comp.long_name;
+            else if (
+              !city &&
+              comp.types.includes("administrative_area_level_2")
+            )
+              city = comp.long_name; // District as fallback
+
+            if (comp.types.includes("administrative_area_level_1"))
+              state = comp.long_name;
+          });
+
+          // If City found, use it. If not, fallback to original string in City field for searchability
+          structuredLocation = {
+            city: city || location,
+            state: state,
+            fullAddress: geoRes.data.results[0].formatted_address, // Save full address
+          };
+        } else {
+          structuredLocation = {
+            city: location,
+            state: "",
+            fullAddress: location,
+          };
+        }
+      } else {
+        // No API Key, treat string as city
+        structuredLocation = {
+          city: location,
+          state: "",
+          fullAddress: location,
+        };
       }
+    } catch (err) {
+      console.error("Geocoding Error:", err.message);
+      structuredLocation = { city: location, state: "", fullAddress: location };
+    }
   } else if (typeof location === "object") {
-      structuredLocation = location;
+    structuredLocation = location;
   }
 
   // 1. Detect Device Type
@@ -280,35 +296,27 @@ export const createLead = asyncHandler(async (req, res, next) => {
     if (setting && setting.value) {
       const costs = setting.value;
       // Convert to array and sort by minBudget descending (highest criteria first)
-      const tiers = Object.keys(costs).map(key => ({
-        key,
-        ...costs[key]
-      })).sort((a, b) => (b.minBudget || 0) - (a.minBudget || 0));
+      const tiers = Object.keys(costs)
+        .map((key) => ({
+          key,
+          ...costs[key],
+        }))
+        .sort((a, b) => (b.minBudget || 0) - (a.minBudget || 0));
 
       for (const tier of tiers) {
         const tierMinBudget = Number(tier.minBudget) || 0;
         const tierMinGuests = Number(tier.minGuests) || 0;
 
         if (budgetNum >= tierMinBudget && guestNum >= tierMinGuests) {
-          category = tier.label || tier.key.charAt(0).toUpperCase() + tier.key.slice(1);
+          category =
+            tier.label || tier.key.charAt(0).toUpperCase() + tier.key.slice(1);
           price = Number(tier.amount) || 50;
-          if (tier.key === 'elite' || tier.minBudget >= 1000000) tags.push("High Value");
+          if (tier.key === "elite" || tier.minBudget >= 1000000)
+            tags.push("High Value");
           break; // Stop at the highest matching tier
         }
       }
     } else {
-        // Fallback Logic
-        if (budgetNum >= 1000000 || guestNum >= 500) {
-            category = "Elite";
-            price = 150;
-            tags.push("High Value");
-        } else if (budgetNum >= 300000 || guestNum >= 200) {
-            category = "Premium";
-            price = 100;
-        }
-    }
-  } catch (err) {
-      console.error("Error fetching lead rules:", err);
       // Fallback Logic
       if (budgetNum >= 1000000 || guestNum >= 500) {
         category = "Elite";
@@ -318,6 +326,18 @@ export const createLead = asyncHandler(async (req, res, next) => {
         category = "Premium";
         price = 100;
       }
+    }
+  } catch (err) {
+    console.error("Error fetching lead rules:", err);
+    // Fallback Logic
+    if (budgetNum >= 1000000 || guestNum >= 500) {
+      category = "Elite";
+      price = 150;
+      tags.push("High Value");
+    } else if (budgetNum >= 300000 || guestNum >= 200) {
+      category = "Premium";
+      price = 100;
+    }
   }
 
   // 3. Redact Contact Info from Message
@@ -328,10 +348,14 @@ export const createLead = asyncHandler(async (req, res, next) => {
   try {
     if (interestedInPackage && packageType) {
       if (packageType === "VenuePackage") {
-        const pkg = await VenuePackage.findById(interestedInPackage).populate("venueCategory");
+        const pkg = await VenuePackage.findById(interestedInPackage).populate(
+          "venueCategory"
+        );
         if (pkg && pkg.venueCategory) bizCat = pkg.venueCategory.name;
       } else if (packageType === "ServicePackage") {
-        const pkg = await ServicePackage.findById(interestedInPackage).populate("serviceSubCategory");
+        const pkg = await ServicePackage.findById(interestedInPackage).populate(
+          "serviceSubCategory"
+        );
         if (pkg && pkg.serviceSubCategory) bizCat = pkg.serviceSubCategory.name;
       }
     }

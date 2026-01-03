@@ -11,6 +11,7 @@ import ServicePackage from "../models/ServicePackage.js"; // Added for populatio
 import VenueCategory from "../models/VenueCategory.js"; // Added for population
 import ServiceSubCategory from "../models/ServiceSubCategory.js"; // Added for population
 import mongoose from "mongoose";
+import { v4 as uuidv4 } from "uuid";
 
 // Constant: Default price per lead if bought via Wallet directly
 const PRICE_PER_LEAD = 50; 
@@ -159,6 +160,7 @@ export const buyLead = asyncHandler(async (req, res, next) => {
       vendor: vendorId,
       type: "debit",
       gateway: "internal",
+      orderId: `order_${uuidv4().replace(/-/g, "").substring(0, 14)}`,
       amount: lead.price,
       currency: "INR",
       status: "success",
@@ -293,6 +295,7 @@ export const buyLeadBundle = asyncHandler(async (req, res, next) => {
     vendor: vendorId,
     type: "debit",
     gateway: "internal",
+    orderId: `order_${uuidv4().replace(/-/g, "").substring(0, 14)}`,
     amount: bundle.price,
     currency: "INR",
     status: "success",

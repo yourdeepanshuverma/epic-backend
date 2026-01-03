@@ -20,7 +20,11 @@ const transactionSchema = new Schema(
       required: true,
     },
 
-    orderId: String,
+    orderId: {
+      type: String,
+      required: true,
+      unique: true,
+    },
     paymentId: String,
 
     amount: {

@@ -12,6 +12,10 @@ const serviceSubCategory = new Schema({
     lowercase: true,
     trim: true,
   },
+  description: {
+    type: String,
+    required: false,
+  },
   image: {
     public_id: {
       type: String,

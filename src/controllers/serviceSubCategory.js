@@ -12,7 +12,7 @@ import slugify from "slugify";
 import mongoose from "mongoose";
 
 export const createServiceSubCategory = asyncHandler(async (req, res, next) => {
-  const { name, serviceCategory, services } = req.body;
+  const { name, serviceCategory, services, description } = req.body;
 
   if (!name) return next(new ErrorResponse(400, "Name is required"));
   if (!serviceCategory)
@@ -57,6 +57,7 @@ export const createServiceSubCategory = asyncHandler(async (req, res, next) => {
   const subCategory = await ServiceSubCategory.create({
     name,
     slug,
+    description,
     serviceCategory,
     services,
     image: uploadedImage[0],
@@ -100,7 +101,7 @@ export const updateServiceSubCategory = asyncHandler(async (req, res, next) => {
   if (!subCategory)
     return next(new ErrorResponse(404, "Sub-category not found"));
 
-  const { name, serviceCategory, services } = req.body;
+  const { name, serviceCategory, services, description } = req.body;
 
   if (name) {
     const slug = slugify(name, { lower: true, strict: true });
@@ -120,6 +121,8 @@ export const updateServiceSubCategory = asyncHandler(async (req, res, next) => {
     subCategory.name = name;
     subCategory.slug = slug;
   }
+
+  if (description !== undefined) subCategory.description = description;
 
   if (serviceCategory) {
     const exists = await ServiceCategory.findById(serviceCategory);

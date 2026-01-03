@@ -11,7 +11,7 @@ import mongoose from "mongoose";
    CREATE CATEGORY
 ====================================================== */
 export const createCategory = asyncHandler(async (req, res, next) => {
-  const { name, services } = req.body;
+  const { name, services, description } = req.body;
 
   if (!name) {
     return next(new ErrorResponse(400, "Category name is required"));
@@ -56,6 +56,7 @@ export const createCategory = asyncHandler(async (req, res, next) => {
   const category = await VenueCategory.create({
     name,
     slug,
+    description,
     image: uploadedImage[0],
     services,
   });
@@ -105,7 +106,7 @@ export const getCategory = asyncHandler(async (req, res, next) => {
    UPDATE CATEGORY
 ====================================================== */
 export const updateCategory = asyncHandler(async (req, res, next) => {
-  const { name, services } = req.body;
+  const { name, services, description } = req.body;
 
   const category = await VenueCategory.findById(req.params.id);
   if (!category) return next(new ErrorResponse(404, "Category not found"));
@@ -134,6 +135,8 @@ export const updateCategory = asyncHandler(async (req, res, next) => {
     category.name = name;
     category.slug = slug;
   }
+
+  if (description !== undefined) category.description = description;
 
   if (services) {
     const invalid = services.filter(

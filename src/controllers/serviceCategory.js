@@ -10,7 +10,7 @@ import slugify from "slugify";
 
 // CREATE CATEGORY
 export const createServiceCategory = asyncHandler(async (req, res, next) => {
-  const { name } = req.body;
+  const { name, description } = req.body;
 
   if (!name) return next(new ErrorResponse(400, "Name is required"));
   if (!req.file) return next(new ErrorResponse(400, "Image is required"));
@@ -28,6 +28,7 @@ export const createServiceCategory = asyncHandler(async (req, res, next) => {
   const category = await ServiceCategory.create({
     name,
     slug,
+    description,
     image: uploadedImg[0],
   });
 
@@ -76,6 +77,10 @@ export const updateServiceCategory = asyncHandler(async (req, res, next) => {
 
     category.name = req.body.name;
     category.slug = slug;
+  }
+
+  if (req.body.description !== undefined) {
+    category.description = req.body.description;
   }
 
   // If a new image is uploaded
