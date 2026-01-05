@@ -51,8 +51,8 @@ app.use(
 const allowedOrigins = [
   process.env.SITE_URL,
   process.env.ADMIN_URL,
+  "https://epic-site-1.vercel.app",
   "http://localhost:5173",
-  // node_env === "development" ? "http://localhost:5173" : null,
 ].filter(Boolean);
 
 app.use(
