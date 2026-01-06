@@ -119,11 +119,15 @@ const servicePackageSchema = new Schema(
         required: [true, "Pincode is required"],
       },
     },
-    services: {
-      type: Map,
-      of: Schema.Types.Mixed,
-      default: {},
-    },
+    services: [
+      {
+        name: { type: String },
+        value: { type: Schema.Types.Mixed },
+        icon: String,
+        type: { type: String },
+        _id: false,
+      },
+    ],
 
     photoAlbums: [albumsSchema],
 
@@ -153,9 +157,9 @@ const servicePackageSchema = new Schema(
   }
 );
 
-servicePackageSchema.pre("save", async function (next) {
+servicePackageSchema.pre("save", async function () {
   if (!this.isModified("title") && !this.isModified("location.city")) {
-    return next();
+    return;
   }
 
   const cityDoc = await model("City").findById(this.location.city);
@@ -170,8 +174,6 @@ servicePackageSchema.pre("save", async function (next) {
 
   // _id always available before save
   this.slug = `${baseSlug}-${citySlug}-${this._id.toString()}`;
-
-  next();
 });
 
 const ServicePackage =

@@ -7,7 +7,9 @@ import {
   getAllServiceCategories,
   getServiceSubCategoriesByCategory,
   getVenuePackage,
-  createLead
+  createLead,
+  getPublicBlogs,
+  getPublicBlog
 } from "../controllers/public.js";
 
 const router = Router();
@@ -22,5 +24,9 @@ router.get("/service-packages", getAllServicePackages);
 router.get("/venue-packages/:slug", getVenuePackage);
 router.get("/service-packages/:slug", getServicePackage);
 router.post("/inquiry", createLead);
+
+// Blog Routes (Public)
+router.get("/blogs", getPublicBlogs);
+router.get("/blogs/:slug", getPublicBlog);
 
 export default router;

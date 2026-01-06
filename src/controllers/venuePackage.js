@@ -89,14 +89,38 @@ export const createVenuePackage = asyncHandler(async (req, res, next) => {
     location.city = city._id;
   } else location.city = cityExists._id;
 
-  // --- SERVICES (Map from frontend) ---
-  let serviceMap = {};
+  // --- SERVICES (Standardized Array) ---
+  let servicesArray = [];
   if (services) {
     try {
-      serviceMap = JSON.parse(services);
-    } catch {
-      serviceMap = {};
+      const parsed =
+        typeof services === "string" ? JSON.parse(services) : services;
+
+      if (Array.isArray(parsed)) {
+        servicesArray = parsed
+          .map((s) => ({
+            name: s.name,
+            value: s.value,
+            icon: s.icon,
+            type: s.type,
+          }))
+          .filter((s) => {
+            const isValid =
+              s.name &&
+              String(s.name).trim() !== "" &&
+              s.value !== "" &&
+              s.value !== null &&
+              s.value !== undefined;
+            if (!isValid) console.log("DEBUG: Dropping invalid service:", s);
+            return isValid;
+          });
+      }
+    } catch (err) {
+      console.error("Services parsing error:", err);
+      servicesArray = [];
     }
+  } else {
+    console.log("DEBUG: createVenuePackage - No services field in body");
   }
 
   if (!req.file) {
@@ -122,7 +146,7 @@ export const createVenuePackage = asyncHandler(async (req, res, next) => {
     featuredImage,
     startingPrice,
     location,
-    services: serviceMap,
+    services: servicesArray,
     approved: req.vendor?.autoApprovePackages,
   });
 
@@ -182,13 +206,13 @@ export const getVenuePackages = asyncHandler(async (req, res) => {
 ====================================================== */
 export const getVenuePackage = asyncHandler(async (req, res, next) => {
   const pkg = await VenuePackage.findById(req.params.id)
-    .populate({ 
-      path: "venueCategory", 
+    .populate({
+      path: "venueCategory",
       select: "name slug services",
       populate: {
         path: "services",
-        select: "name icon type"
-      }
+        select: "name icon type",
+      },
     })
     .populate({ path: "location.city", select: "name" })
     .populate({ path: "location.state", select: "name" })
@@ -276,11 +300,52 @@ export const updateBasicDetails = asyncHandler(async (req, res, next) => {
     } else updates.location.city = cityExists._id;
   }
 
-  const allowedFields = ["title", "description", "startingPrice", "location"];
+  const allowedFields = [
+    "title",
+    "description",
+    "startingPrice",
+    "location",
+    "services",
+  ];
 
   allowedFields.forEach((f) => {
     if (updates[f] !== undefined) pkg[f] = updates[f];
   });
+
+  // Handle Services Update (Standardized Array)
+  if (updates.services) {
+    try {
+      const parsed =
+        typeof updates.services === "string"
+          ? JSON.parse(updates.services)
+          : updates.services;
+      let servicesArray = [];
+
+      if (Array.isArray(parsed)) {
+        servicesArray = parsed
+          .map((s) => ({
+            name: s.name,
+            value: s.value,
+            icon: s.icon,
+            type: s.type,
+          }))
+          .filter((s) => {
+            const isValid =
+              s.name &&
+              String(s.name).trim() !== "" &&
+              s.value !== "" &&
+              s.value !== null &&
+              s.value !== undefined;
+            if (!isValid) console.log("DEBUG: Dropping invalid service:", s);
+            return isValid;
+          });
+      }
+
+      pkg.services = servicesArray;
+    } catch (e) {
+      console.error("Error parsing services update:", e);
+    }
+  }
 
   // Handle featuredImage
   if (req.file) {

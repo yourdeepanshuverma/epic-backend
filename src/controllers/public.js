@@ -12,6 +12,8 @@ import extractIdFromSlug from "../utils/extractIdFromSlug.js";
 import mongoose from "mongoose"; // Added import
 import { redactPhoneNumber } from "../utils/helper.js";
 import SystemSetting from "../models/SystemSetting.js";
+import Blog from "../models/Blog.js"; // Added import
+import axios from "axios";
 
 // GET ALL VENUE CATEGORIES - public
 export const getAllVenueCategories = asyncHandler(async (req, res) => {
@@ -188,7 +190,6 @@ export const getServicePackage = asyncHandler(async (req, res, next) => {
     .json(new SuccessResponse(200, "Service package details", pkg));
 });
 
-import axios from "axios"; // Added import
 
 /* ======================================================
     PUBLIC: CREATE LEAD (Website Inquiry)
@@ -386,4 +387,56 @@ export const createLead = asyncHandler(async (req, res, next) => {
   res
     .status(201)
     .json(new SuccessResponse(201, "Inquiry submitted successfully", lead));
+});
+
+/* ======================================================
+    PUBLIC: GET ALL BLOGS
+====================================================== */
+export const getPublicBlogs = asyncHandler(async (req, res) => {
+  const { page = 1, limit = 10, category, search } = req.query;
+
+  const filter = {};
+
+  if (category) filter.category = category;
+  if (search) filter.title = { $regex: search, $options: "i" };
+
+  const blogs = await Blog.find(filter)
+    .populate("vendor", "vendorName profile")
+    .sort({ createdAt: -1 })
+    .skip((page - 1) * limit)
+    .limit(Number(limit));
+
+  const total = await Blog.countDocuments(filter);
+
+  res.status(200).json(
+    new SuccessResponse(200, "Public blogs fetched", {
+      blogs,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    })
+  );
+});
+
+/* ======================================================
+    PUBLIC: GET SINGLE BLOG (By Slug)
+====================================================== */
+export const getPublicBlog = asyncHandler(async (req, res, next) => {
+  const { slug } = req.params;
+
+  const blog = await Blog.findOne({ slug }).populate(
+    "vendor",
+    "vendorName profile"
+  );
+
+  if (!blog) {
+    return next(new ErrorResponse(404, "Blog not found"));
+  }
+
+  res
+    .status(200)
+    .json(new SuccessResponse(200, "Public blog details", blog));
 });

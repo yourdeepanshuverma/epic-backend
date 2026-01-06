@@ -85,12 +85,34 @@ export const createServicePackage = asyncHandler(async (req, res, next) => {
   parsedLocation.state = stateDoc._id;
   parsedLocation.city = cityDoc._id;
 
-  // Parse Services
-  let serviceMap = {};
+  // Parse Services (Standardized Array)
+  let servicesArray = [];
   if (services) {
     try {
-      serviceMap = JSON.parse(services);
-    } catch {}
+      const parsed =
+        typeof services === "string" ? JSON.parse(services) : services;
+
+      if (Array.isArray(parsed)) {
+        servicesArray = parsed
+          .map((s) => ({
+            name: s.name,
+            value: s.value,
+            icon: s.icon,
+            type: s.type,
+          }))
+          .filter(
+            (s) =>
+              s.name &&
+              String(s.name).trim() !== "" &&
+              s.value !== "" &&
+              s.value !== null &&
+              s.value !== undefined
+          );
+      }
+    } catch (err) {
+      console.error("Error parsing services:", err);
+      servicesArray = [];
+    }
   }
 
   // Featured Image
@@ -110,7 +132,7 @@ export const createServicePackage = asyncHandler(async (req, res, next) => {
     featuredImage,
     startingPrice,
     location: parsedLocation,
-    services: serviceMap,
+    services: servicesArray,
     approved: req.vendor?.autoApprovePackages,
   });
 
@@ -180,8 +202,8 @@ export const getServicePackage = asyncHandler(async (req, res, next) => {
         {
           path: "services", // Populate services array in subcategory
           select: "name icon type",
-        }
-      ]
+        },
+      ],
     })
     .populate("location.city", "name")
     .populate("location.state", "name")
@@ -213,7 +235,7 @@ export const updateServiceBasicDetails = asyncHandler(
 
     const updates = req.body;
 
-    const allowed = ["title", "description", "startingPrice"];
+    const allowed = ["title", "description", "startingPrice", "services"];
 
     if (isVendor) {
       Object.keys(updates).forEach((key) => {
@@ -260,6 +282,40 @@ export const updateServiceBasicDetails = asyncHandler(
     allowed.forEach((f) => {
       if (updates[f] !== undefined) pkg[f] = updates[f];
     });
+
+    // Handle Services Update (Standardized Array)
+    if (updates.services) {
+      try {
+        const parsed =
+          typeof updates.services === "string"
+            ? JSON.parse(updates.services)
+            : updates.services;
+        let servicesArray = [];
+
+        if (Array.isArray(parsed)) {
+          servicesArray = parsed
+            .map((s) => ({
+              name: s.name,
+              value: s.value,
+              icon: s.icon,
+              type: s.type,
+            }))
+            .filter((s) => {
+              const isValid =
+                s.name &&
+                String(s.name).trim() !== "" &&
+                s.value !== "" &&
+                s.value !== null &&
+                s.value !== undefined;
+              if (!isValid) console.log("DEBUG: Dropping invalid service:", s);
+              return isValid;
+            });
+        }
+        pkg.services = servicesArray;
+      } catch (e) {
+        console.error("Error parsing services update:", e);
+      }
+    }
 
     await pkg.save();
 

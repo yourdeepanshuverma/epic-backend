@@ -30,9 +30,12 @@ const getVendorHeaders = asyncHandler(async (req, _, next) => {
       // update only if 2 minutes old
       if (!vendor.lastActive || now - vendor.lastActive > 120000) {
         vendor.lastActive = Date.now();
+        try {
+          await vendor.save({ validateBeforeSave: false });
+        } catch (err) {
+          console.error("Error updating vendor lastActive:", err.message);
+        }
       }
-
-      await vendor.save({ validateBeforeSave: false });
 
       req.vendor = vendor;
 
