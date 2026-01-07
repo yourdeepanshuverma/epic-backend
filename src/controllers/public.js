@@ -507,3 +507,55 @@ export const getPopularServicePackages = asyncHandler(async (req, res) => {
     .status(200)
     .json(new SuccessResponse(200, "Popular service packages", packages));
 });
+
+/* ======================================================
+    PUBLIC: GET PREMIUM VENUE PACKAGES
+====================================================== */
+export const getPremiumVenuePackages = asyncHandler(async (req, res) => {
+  const { limit = 8 } = req.query;
+
+  const packages = await VenuePackage.find({
+    approved: true,
+    visibility: "public",
+    isPremium: true,
+  })
+    .sort({ inquiryCount: -1, createdAt: -1 }) // Sort by Popularity then Newest
+    .limit(Number(limit))
+    .populate("venueCategory")
+    .populate("location.city")
+    .populate("location.state")
+    .populate("location.country")
+    .select(
+      "title slug featuredImage startingPrice location venueCategory inquiryCount reviews isPremium"
+    );
+
+  return res
+    .status(200)
+    .json(new SuccessResponse(200, "Premium venue packages", packages));
+});
+
+/* ======================================================
+    PUBLIC: GET PREMIUM SERVICE PACKAGES
+====================================================== */
+export const getPremiumServicePackages = asyncHandler(async (req, res) => {
+  const { limit = 8 } = req.query;
+
+  const packages = await ServicePackage.find({
+    approved: true,
+    visibility: "public",
+    isPremium: true,
+  })
+    .sort({ inquiryCount: -1, createdAt: -1 }) // Sort by Popularity then Newest
+    .limit(Number(limit))
+    .populate("serviceSubCategory")
+    .populate("location.city")
+    .populate("location.state")
+    .populate("location.country")
+    .select(
+      "title slug featuredImage startingPrice location serviceSubCategory inquiryCount reviews isPremium"
+    );
+
+  return res
+    .status(200)
+    .json(new SuccessResponse(200, "Premium service packages", packages));
+});

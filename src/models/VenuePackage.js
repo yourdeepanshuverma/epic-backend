@@ -155,6 +155,10 @@ const venuePackageSchema = new Schema(
       type: Number,
       default: 0,
     },
+    isPremium: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
