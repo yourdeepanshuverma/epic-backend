@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import asyncHandler from "../utils/asyncHandler.js";
 import Vendor from "../models/Vendor.js";
 import ErrorResponse from "../utils/ErrorResponse.js";
+import User from "../models/User.js";
 
 // Authentication using Headers
 const getVendorHeaders = asyncHandler(async (req, _, next) => {
