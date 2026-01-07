@@ -149,68 +149,84 @@ export const updateUserProfile = asyncHandler(async (req, res, next) => {
 // @route   POST /api/v1/user/google-auth
 // @access  Public
 export const googleAuth = asyncHandler(async (req, res, next) => {
-  const { code } = req.body;
+  const { code, redirect_uri } = req.body;
 
   if (!code) {
     return next(new ErrorResponse(400, "Google authorization code missing"));
   }
 
-  // Exchange code for tokens
-  const { tokens } = await client.getToken(code);
-
-  // Verify Google token
-  const ticket = await client.verifyIdToken({
-    idToken: tokens.id_token,
-    audience: process.env.GOOGLE_CLIENT_ID,
-  });
-
-  const payload = ticket.getPayload();
-
-  const googleData = {
-    googleId: payload.sub,
-    fullName: payload.name,
-    email: payload.email,
-    profilePic: payload.picture,
-  };
-
-  // Check if user exists by email
-  let user = await User.findOne({ email: googleData.email });
-
-  if (user) {
-    // If user exists but doesn't have googleId (was registered via email/password), link it
-    if (!user.googleId) {
-      user.googleId = googleData.googleId;
-      await user.save();
-    }
-  } else {
-    // New user -> Create account
-    user = await User.create({
-      fullName: googleData.fullName,
-      email: googleData.email,
-      googleId: googleData.googleId,
-      profile: {
-        public_id: "google_profile",
-        url: googleData.profilePic,
-      },
+  try {
+    // Exchange code for tokens (support dynamic redirect_uri if provided)
+    const { tokens } = await client.getToken({
+      code,
+      redirect_uri: redirect_uri || "postmessage",
     });
+
+    // Verify Google token
+    const ticket = await client.verifyIdToken({
+      idToken: tokens.id_token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+
+    const googleData = {
+      googleId: payload.sub,
+      fullName: payload.name,
+      email: payload.email,
+      profilePic: payload.picture,
+    };
+
+    // Check if user exists by email
+    let user = await User.findOne({ email: googleData.email });
+
+    if (user) {
+      // If user exists but doesn't have googleId (was registered via email/password), link it
+      if (!user.googleId) {
+        user.googleId = googleData.googleId;
+        // Skip validation to avoid password required error on existing docs if any schema issue
+        await user.save({ validateBeforeSave: false });
+      }
+    } else {
+      // New user -> Create account
+      user = await User.create({
+        fullName: googleData.fullName,
+        email: googleData.email,
+        googleId: googleData.googleId,
+        profile: {
+          public_id: "google_profile",
+          url: googleData.profilePic,
+        },
+      });
+    }
+
+    if (!user.isActive) {
+      return next(new ErrorResponse(403, "Your account is inactive"));
+    }
+
+    const token = generateToken(user._id);
+
+    res.status(200).json(
+      new SuccessResponse(200, "Login successful", {
+        user: {
+          _id: user._id,
+          fullName: user.fullName,
+          email: user.email,
+          profile: user.profile,
+          role: user.role,
+        },
+        token,
+      })
+    );
+  } catch (error) {
+    console.error("Google Auth Error:", error?.response?.data || error.message);
+    return next(
+      new ErrorResponse(
+        400,
+        error?.response?.data?.error_description ||
+          error.message ||
+          "Google authentication failed"
+      )
+    );
   }
-
-  if (!user.isActive) {
-    return next(new ErrorResponse(403, "Your account is inactive"));
-  }
-
-  const token = generateToken(user._id);
-
-  res.status(200).json(
-    new SuccessResponse(200, "Login successful", {
-      user: {
-        _id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        profile: user.profile,
-        role: user.role,
-      },
-      token,
-    })
-  );
 });
