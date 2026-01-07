@@ -9,7 +9,9 @@ import {
   getVenuePackage,
   createLead,
   getPublicBlogs,
-  getPublicBlog
+  getPublicBlog,
+  getPopularVenuePackages,
+  getPopularServicePackages,
 } from "../controllers/public.js";
 
 const router = Router();
@@ -18,6 +20,9 @@ const router = Router();
 router.get("/venue-categories", getAllVenueCategories);
 router.get("/service-categories", getAllServiceCategories);
 router.get("/service-categories/:categoryId/sub-categories", getServiceSubCategoriesByCategory);
+
+router.get("/venue-packages/popular", getPopularVenuePackages); // Specific route before generic
+router.get("/service-packages/popular", getPopularServicePackages); // Specific route before generic
 
 router.get("/venue-packages", getAllVenuePackages);
 router.get("/service-packages", getAllServicePackages);

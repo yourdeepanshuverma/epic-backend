@@ -13,7 +13,7 @@ import {
   sendPhoneUpdateOtp,
   verifyPhoneUpdateOtp,
 } from "../controllers/vendor.js";
-import { createArrayUpload, upload } from "../middlewares/mutler.js";
+import { createArrayUpload, upload } from "../middlewares/multer.js";
 import { getVendorHeaders } from "../middlewares/authMiddleware.js";
 import {
   addFaq,

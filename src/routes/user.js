@@ -7,7 +7,7 @@ import {
   googleAuth,
 } from "../controllers/user.js";
 import { getUserHeaders } from "../middlewares/authMiddleware.js";
-import upload from "../middlewares/mutler.js";
+import { upload } from "../middlewares/multer.js";
 
 const router = Router();
 
@@ -18,6 +18,11 @@ router.post("/google-auth", googleAuth);
 
 // Private
 router.get("/profile", getUserHeaders, getUserProfile);
-router.put("/profile", getUserHeaders, upload.single("profile"), updateUserProfile);
+router.put(
+  "/profile",
+  getUserHeaders,
+  upload.single("profile"),
+  updateUserProfile
+);
 
 export default router;

@@ -151,6 +151,10 @@ const venuePackageSchema = new Schema(
       enum: ["public", "private"],
       default: "public",
     },
+    inquiryCount: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,

@@ -16,7 +16,7 @@ import {
   updateCity,
   deleteCity,
 } from "../controllers/location.js";
-import { upload } from "../middlewares/mutler.js";
+import { upload } from "../middlewares/multer.js";
 
 // import adminAuth from "../middlewares/adminAuth.js";
 

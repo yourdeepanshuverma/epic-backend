@@ -364,6 +364,23 @@ export const createLead = asyncHandler(async (req, res, next) => {
     console.error("Error determining business category:", err);
   }
 
+  // 5. Increment Inquiry Count for Package (Popularity Logic)
+  if (interestedInPackage && packageType) {
+    try {
+      if (packageType === "VenuePackage") {
+        await VenuePackage.findByIdAndUpdate(interestedInPackage, {
+          $inc: { inquiryCount: 1 },
+        });
+      } else if (packageType === "ServicePackage") {
+        await ServicePackage.findByIdAndUpdate(interestedInPackage, {
+          $inc: { inquiryCount: 1 },
+        });
+      }
+    } catch (err) {
+      console.error("Error updating inquiry count:", err);
+    }
+  }
+
   const lead = await Lead.create({
     name,
     email,
@@ -439,4 +456,54 @@ export const getPublicBlog = asyncHandler(async (req, res, next) => {
   res
     .status(200)
     .json(new SuccessResponse(200, "Public blog details", blog));
+});
+
+/* ======================================================
+    PUBLIC: GET POPULAR VENUE PACKAGES
+====================================================== */
+export const getPopularVenuePackages = asyncHandler(async (req, res) => {
+  const { limit = 8 } = req.query;
+
+  const packages = await VenuePackage.find({
+    approved: true,
+    visibility: "public",
+  })
+    .sort({ inquiryCount: -1, createdAt: -1 })
+    .limit(Number(limit))
+    .populate("venueCategory")
+    .populate("location.city")
+    .populate("location.state")
+    .populate("location.country")
+    .select(
+      "title slug featuredImage startingPrice location venueCategory inquiryCount reviews"
+    );
+
+  return res
+    .status(200)
+    .json(new SuccessResponse(200, "Popular venue packages", packages));
+});
+
+/* ======================================================
+    PUBLIC: GET POPULAR SERVICE PACKAGES
+====================================================== */
+export const getPopularServicePackages = asyncHandler(async (req, res) => {
+  const { limit = 8 } = req.query;
+
+  const packages = await ServicePackage.find({
+    approved: true,
+    visibility: "public",
+  })
+    .sort({ inquiryCount: -1, createdAt: -1 })
+    .limit(Number(limit))
+    .populate("serviceSubCategory")
+    .populate("location.city")
+    .populate("location.state")
+    .populate("location.country")
+    .select(
+      "title slug featuredImage startingPrice location serviceSubCategory inquiryCount reviews"
+    );
+
+  return res
+    .status(200)
+    .json(new SuccessResponse(200, "Popular service packages", packages));
 });

@@ -1,12 +1,12 @@
 import { Router } from "express";
-import { 
-  checkAdmin, 
-  getSystemSettings, 
+import {
+  checkAdmin,
+  getSystemSettings,
   updateSystemSettings,
   getAdminVenuePackages,
   getAdminServicePackages,
   updateVenuePackageStatus,
-  updateServicePackageStatus
+  updateServicePackageStatus,
 } from "../controllers/admin.js";
 import {
   createService,
@@ -47,11 +47,9 @@ import {
   updateCategory,
 } from "../controllers/venueCategory.js";
 import { getAdminCookies } from "../middlewares/authMiddleware.js";
-import { upload } from "../middlewares/mutler.js";
+import { upload } from "../middlewares/multer.js";
 
-import {
-  createLeadBundle
-} from "../controllers/lead.js";
+import { createLeadBundle } from "../controllers/lead.js";
 import { migrateVendorCredits } from "../controllers/migration.js";
 
 // import adminAuth from "../middlewares/adminAuth.js"; // optional, if Admin-only
