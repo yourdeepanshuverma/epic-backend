@@ -50,6 +50,39 @@ const getVendorHeaders = asyncHandler(async (req, _, next) => {
   }
 });
 
+const getUserHeaders = asyncHandler(async (req, _, next) => {
+  let token;
+
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    try {
+      token = req.headers.authorization.split(" ")[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+      const user = await User.findById(decoded.id).select("-password");
+
+      if (!user) {
+        return next(new ErrorResponse(401, "Not authorized"));
+      }
+
+      if (!user.isActive) {
+        return next(new ErrorResponse(403, "User account is inactive"));
+      }
+
+      req.user = user;
+      next();
+    } catch (error) {
+      return next(new ErrorResponse(401, "Not authorized, token failed"));
+    }
+  }
+
+  if (!token) {
+    return next(new ErrorResponse(401, "Please login to access this route"));
+  }
+});
+
 const getAdminCookies = asyncHandler(async (req, _, next) => {
   const token = req.cookies["adminToken"];
 
@@ -71,4 +104,4 @@ const getAdminCookies = asyncHandler(async (req, _, next) => {
   next();
 });
 
-export { getVendorHeaders, getAdminCookies };
+export { getVendorHeaders, getUserHeaders, getAdminCookies };

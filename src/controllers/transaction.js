@@ -107,6 +107,10 @@ const verifyRazorpayPayment = asyncHandler(async (req, res, next) => {
     }
 
     // Update vendor wallet
+    if (!vendor.wallet) {
+      vendor.wallet = { balance: 0, transactions: [] };
+    }
+
     vendor.wallet.balance += transaction.amount;
     vendor.wallet.transactions.push(transaction._id);
     await vendor.save();
@@ -118,8 +122,8 @@ const verifyRazorpayPayment = asyncHandler(async (req, res, next) => {
       })
     );
 
-    // Send email notification
-    await sendEmail(
+    // Send email notification (Async)
+    sendEmail(
       req.vendor.email,
       "Wallet Top-up Successful",
       `<h2>Payment Successful</h2>
@@ -132,9 +136,8 @@ const verifyRazorpayPayment = asyncHandler(async (req, res, next) => {
        <br>
        <p>Thank you,</p>
        <p>Team Cabnex</p>`
-    );
+    ).catch((err) => console.error("Email sending failed:", err));
   } catch (err) {
-    console.error(err);
     next(new ErrorResponse(500, "Payment verification failed"));
   }
 });

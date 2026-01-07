@@ -241,7 +241,7 @@ const vendorSchema = new Schema(
   { timestamps: true }
 );
 
-vendorSchema.pre("save", async function (next) {
+vendorSchema.pre("save", async function () {
   // PASSWORD check
   if (this.isModified("password")) {
     this.password = await bcrypt.hash(this.password, 10);
@@ -257,8 +257,6 @@ vendorSchema.pre("save", async function (next) {
 
     this.slug = `${baseSlug}-${this._id.toString()}`;
   }
-
-  next();
 });
 
 vendorSchema.methods.isPasswordCorrect = async function (password) {

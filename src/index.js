@@ -13,6 +13,7 @@ import leadRoutes from "./routes/lead.js";
 import publicRoutes from "./routes/public.js";
 import otpRoutes from "./routes/otp.js";
 import blogRoutes from "./routes/blog.js";
+import userRoutes from "./routes/user.js";
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -78,6 +79,7 @@ app.use("/api/v1/leads", leadRoutes); // Vendor Lead Management
 app.use("/api/v1/public", publicRoutes); // Website Public APIs
 app.use("/api/v1/otp", otpRoutes);
 app.use("/api/v1/blogs", blogRoutes);
+app.use("/api/v1/user", userRoutes);
 
 // Error Middleware
 app.use(errorMiddleware);
