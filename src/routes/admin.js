@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  bulkCreateVendors,
   checkAdmin,
   getSystemSettings,
   updateSystemSettings,
@@ -38,6 +39,7 @@ import {
   toggleVerifyBadge,
   updateAdminNotesForVendor,
   updateVendorStatus,
+  updateVendorDetailsByAdmin, // Import new controller
 } from "../controllers/vendor.js";
 import {
   createCategory,
@@ -91,9 +93,23 @@ router.delete("/venue-categories/:id", deleteCategory); // tested
 
 //#region vendor management routes
 router.get("/vendors", getAllVendors); // tested
+router.post("/vendors/bulk-create", bulkCreateVendors); // new route
 router.get("/vendors/:id", getVendorById); // tested
 router.put("/vendors/:id/status", updateVendorStatus); // tested
 router.delete("/vendors/:id", deleteVendor); // tested
+
+router.put(
+  "/vendors/:id",
+  upload.fields([
+    { name: 'profile', maxCount: 1 },
+    { name: 'coverImage', maxCount: 1 },
+    { name: 'documents[gst]', maxCount: 1 },
+    { name: 'documents[pan]', maxCount: 1 },
+    { name: 'documents[idProof]', maxCount: 1 },
+    { name: 'documents[registrationProof]', maxCount: 1 },
+  ]),
+  updateVendorDetailsByAdmin
+); // New route for admin to update full vendor details
 
 // Mark vendor as featured/unfeatured
 router.put("/vendors/:id/toggle-featured", toggleFeaturedVendor); // tested

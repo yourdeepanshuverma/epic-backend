@@ -1,96 +1,33 @@
 {
 	"info": {
-		"_postman_id": "epic-blogs-collection",
-		"name": "Epic Blogs",
-		"description": "Collection for Epic Blog CRUD Operations",
+		"_postman_id": "epic-packages-collection",
+		"name": "Epic Popular & Premium Packages",
+		"description": "Endpoints for fetching Popular and Premium Venue/Service Packages",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
 		{
-			"name": "Blogs",
+			"name": "Popular Packages",
 			"item": [
 				{
-					"name": "Create Blog",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}",
-								"type": "text"
-							}
-						],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "title",
-									"value": "My First Blog",
-									"type": "text"
-								},
-								{
-									"key": "category",
-									"value": "Wedding Tips",
-									"type": "text"
-								},
-								{
-									"key": "excerpt",
-									"value": "This is a short summary of the blog post...",
-									"type": "text"
-								},
-								{
-									"key": "content",
-									"value": "<h1>Welcome</h1><p>This is the content of the blog post with HTML tags...</p>",
-									"type": "text"
-								},
-								{
-									"key": "image",
-									"type": "file",
-									"src": []
-								}
-							]
-						},
-						"url": {
-							"raw": "{{EpicDevelopment}}/blogs",
-							"host": [
-								"{{EpicDevelopment}}"
-							],
-							"path": [
-								"blogs"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get All Blogs",
+					"name": "Get Popular Venue Packages",
 					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{EpicDevelopment}}/blogs?page=1&limit=10&category=&search=",
+							"raw": "{{EpicDevelopment}}/public/venue-packages/popular?limit=8",
 							"host": [
 								"{{EpicDevelopment}}"
 							],
 							"path": [
-								"blogs"
+								"public",
+								"venue-packages",
+								"popular"
 							],
 							"query": [
 								{
-									"key": "page",
-									"value": "1"
-								},
-								{
 									"key": "limit",
-									"value": "10"
-								},
-								{
-									"key": "category",
-									"value": ""
-								},
-								{
-									"key": "search",
-									"value": ""
+									"value": "8"
 								}
 							]
 						}
@@ -98,114 +35,24 @@
 					"response": []
 				},
 				{
-					"name": "Get Blog by Slug",
+					"name": "Get Popular Service Packages",
 					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{EpicDevelopment}}/blogs/:slug",
+							"raw": "{{EpicDevelopment}}/public/service-packages/popular?limit=8",
 							"host": [
 								"{{EpicDevelopment}}"
 							],
 							"path": [
-								"blogs",
-								":slug"
+								"public",
+								"service-packages",
+								"popular"
 							],
-							"variable": [
+							"query": [
 								{
-									"key": "slug",
-									"value": "my-first-blog-slug",
-									"description": "Slug of the blog post"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Update Blog",
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}",
-								"type": "text"
-							}
-						],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "title",
-									"value": "Updated Blog Title",
-									"type": "text"
-								},
-								{
-									"key": "category",
-									"value": "Trends",
-									"type": "text"
-								},
-								{
-									"key": "excerpt",
-									"value": "Updated excerpt for the post...",
-									"type": "text"
-								},
-								{
-									"key": "content",
-									"value": "<p>Updated content with rich text...</p>",
-									"type": "text"
-								},
-								{
-									"key": "image",
-									"type": "file",
-									"src": []
-								}
-							]
-						},
-						"url": {
-							"raw": "{{EpicDevelopment}}/blogs/:id",
-							"host": [
-								"{{EpicDevelopment}}"
-							],
-							"path": [
-								"blogs",
-								":id"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "BLOG_ID_HERE"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Delete Blog",
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "{{EpicDevelopment}}/blogs/:id",
-							"host": [
-								"{{EpicDevelopment}}"
-							],
-							"path": [
-								"blogs",
-								":id"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "BLOG_ID_HERE"
+									"key": "limit",
+									"value": "8"
 								}
 							]
 						}
@@ -215,161 +62,27 @@
 			]
 		},
 		{
-			"name": "Public",
+			"name": "Premium Packages",
 			"item": [
 				{
-					"name": "Get All Venue Categories",
+					"name": "Get Premium Venue Packages",
 					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{EpicDevelopment}}/public/venue-categories",
-							"host": [
-								"{{EpicDevelopment}}"
-							],
-							"path": [
-								"public",
-								"venue-categories"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get All Service Categories",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{EpicDevelopment}}/public/service-categories",
-							"host": [
-								"{{EpicDevelopment}}"
-							],
-							"path": [
-								"public",
-								"service-categories"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Service Sub-Categories",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{EpicDevelopment}}/public/service-categories/:categoryId/sub-categories",
-							"host": [
-								"{{EpicDevelopment}}"
-							],
-							"path": [
-								"public",
-								"service-categories",
-								":categoryId",
-								"sub-categories"
-							],
-							"variable": [
-								{
-									"key": "categoryId",
-									"value": "CATEGORY_ID_HERE"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Venue Packages",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{EpicDevelopment}}/public/venue-packages?category=&city=&minPrice=&maxPrice=",
-							"host": [
-								"{{EpicDevelopment}}"
-							],
-							"path": [
-								"public",
-								"venue-packages"
-							],
-							"query": [
-								{
-									"key": "category",
-									"value": ""
-								},
-								{
-									"key": "city",
-									"value": ""
-								},
-								{
-									"key": "minPrice",
-									"value": ""
-								},
-								{
-									"key": "maxPrice",
-									"value": ""
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Service Packages",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{EpicDevelopment}}/public/service-packages?subCategory=&city=&minPrice=&maxPrice=",
-							"host": [
-								"{{EpicDevelopment}}"
-							],
-							"path": [
-								"public",
-								"service-packages"
-							],
-							"query": [
-								{
-									"key": "subCategory",
-									"value": ""
-								},
-								{
-									"key": "city",
-									"value": ""
-								},
-								{
-									"key": "minPrice",
-									"value": ""
-								},
-								{
-									"key": "maxPrice",
-									"value": ""
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Single Venue Package",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{EpicDevelopment}}/public/venue-packages/:slug",
+							"raw": "{{EpicDevelopment}}/public/venue-packages/premium?limit=8",
 							"host": [
 								"{{EpicDevelopment}}"
 							],
 							"path": [
 								"public",
 								"venue-packages",
-								":slug"
+								"premium"
 							],
-							"variable": [
+							"query": [
 								{
-									"key": "slug",
-									"value": "pkg-slug"
+									"key": "limit",
+									"value": "8"
 								}
 							]
 						}
@@ -377,112 +90,24 @@
 					"response": []
 				},
 				{
-					"name": "Get Single Service Package",
+					"name": "Get Premium Service Packages",
 					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{EpicDevelopment}}/public/service-packages/:slug",
+							"raw": "{{EpicDevelopment}}/public/service-packages/premium?limit=8",
 							"host": [
 								"{{EpicDevelopment}}"
 							],
 							"path": [
 								"public",
 								"service-packages",
-								":slug"
-							],
-							"variable": [
-								{
-									"key": "slug",
-									"value": "pkg-slug"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Submit Inquiry (Lead)",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"name\": \"John Doe\",\n    \"email\": \"john@example.com\",\n    \"phone\": \"9876543210\",\n    \"location\": \"Delhi\",\n    \"eventDate\": \"2024-12-25\",\n    \"guestCount\": 250,\n    \"budget\": 500000,\n    \"message\": \"I am interested in this package.\",\n    \"interestedInPackage\": \"PKG_ID_OPTIONAL\",\n    \"packageType\": \"VenuePackage\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{EpicDevelopment}}/public/inquiry",
-							"host": [
-								"{{EpicDevelopment}}"
-							],
-							"path": [
-								"public",
-								"inquiry"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Public Blogs",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{EpicDevelopment}}/public/blogs?page=1&limit=10&category=&search=",
-							"host": [
-								"{{EpicDevelopment}}"
-							],
-							"path": [
-								"public",
-								"blogs"
+								"premium"
 							],
 							"query": [
 								{
-									"key": "page",
-									"value": "1"
-								},
-								{
 									"key": "limit",
-									"value": "10"
-								},
-								{
-									"key": "category",
-									"value": ""
-								},
-								{
-									"key": "search",
-									"value": ""
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Public Blog Detail",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{EpicDevelopment}}/public/blogs/:slug",
-							"host": [
-								"{{EpicDevelopment}}"
-							],
-							"path": [
-								"public",
-								"blogs",
-								":slug"
-							],
-							"variable": [
-								{
-									"key": "slug",
-									"value": "blog-slug-123"
+									"value": "8"
 								}
 							]
 						}
@@ -496,11 +121,6 @@
 		{
 			"key": "EpicDevelopment",
 			"value": "http://localhost:3000/api/v1",
-			"type": "string"
-		},
-		{
-			"key": "token",
-			"value": "YOUR_JWT_TOKEN_HERE",
 			"type": "string"
 		}
 	]

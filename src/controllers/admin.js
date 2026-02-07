@@ -4,6 +4,7 @@ import SuccessResponse from "../utils/SuccessResponse.js";
 import SystemSetting from "../models/SystemSetting.js";
 import VenuePackage from "../models/VenuePackage.js";
 import ServicePackage from "../models/ServicePackage.js";
+import Vendor from "../models/Vendor.js";
 
 // Default Costs
 const DEFAULT_LEAD_COSTS = {
@@ -60,7 +61,7 @@ export const checkAdmin = asyncHandler(async (req, res, next) => {
     ADMIN: GET ALL VENUE PACKAGES (With Filters)
 ====================================================== */
 export const getAdminVenuePackages = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 10, status, search } = req.query;
+  const { page = 1, limit = 10, status, search, vendor } = req.query;
 
   const filter = {};
 
@@ -70,6 +71,10 @@ export const getAdminVenuePackages = asyncHandler(async (req, res) => {
 
   if (search) {
     filter.title = { $regex: search, $options: "i" };
+  }
+
+  if (vendor) {
+    filter.vendor = vendor;
   }
 
   const packages = await VenuePackage.find(filter)
@@ -96,7 +101,7 @@ export const getAdminVenuePackages = asyncHandler(async (req, res) => {
     ADMIN: GET ALL SERVICE PACKAGES (With Filters)
 ====================================================== */
 export const getAdminServicePackages = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 10, status, search } = req.query;
+  const { page = 1, limit = 10, status, search, vendor } = req.query;
 
   const filter = {};
 
@@ -105,6 +110,10 @@ export const getAdminServicePackages = asyncHandler(async (req, res) => {
 
   if (search) {
     filter.title = { $regex: search, $options: "i" };
+  }
+
+  if (vendor) {
+    filter.vendor = vendor;
   }
 
   const packages = await ServicePackage.find(filter)
@@ -158,4 +167,99 @@ export const updateServicePackageStatus = asyncHandler(async (req, res, next) =>
   await pkg.save();
 
   res.status(200).json(new SuccessResponse(200, "Package status updated", pkg));
+});
+
+/* ======================================================
+    ADMIN: BULK CREATE VENDORS
+====================================================== */
+export const bulkCreateVendors = asyncHandler(async (req, res, next) => {
+  const vendorsData = req.body;
+
+  if (!Array.isArray(vendorsData) || vendorsData.length === 0) {
+    return next(new ErrorResponse(400, "No vendor data provided or data is not in an array"));
+  }
+
+  const results = {
+    successCount: 0,
+    errors: [],
+  };
+
+  for (let i = 0; i < vendorsData.length; i++) {
+    const rowNumber = i + 2; // Assuming Excel row numbers start at 2 (1 for header)
+    const vendor = vendorsData[i];
+
+    const {
+      vendorName,
+      email,
+      phone,
+      password,
+      experience,
+      workingSince,
+      contactPerson,
+      state,
+      city,
+      locality,
+      address,
+    } = vendor;
+
+    // 1. Check for required fields
+    const requiredFields = {
+      vendorName,
+      email,
+      phone,
+      password,
+      experience,
+      workingSince,
+      contactPerson,
+      state,
+      city,
+      locality,
+      address,
+    };
+    const missingField = Object.keys(requiredFields).find(
+      (key) => !requiredFields[key]
+    );
+
+    if (missingField) {
+      results.errors.push({
+        row: rowNumber,
+        email: email || "N/A",
+        message: `Missing required field: ${missingField}`,
+      });
+      continue;
+    }
+
+    try {
+      // 2. Check for uniqueness
+      const existingVendor = await Vendor.findOne({ $or: [{ email }, { phone }] });
+      if (existingVendor) {
+        results.errors.push({
+          row: rowNumber,
+          email,
+          message: "Email or phone number already exists.",
+        });
+        continue;
+      }
+
+      // 3. Create and save vendor
+      const newVendor = new Vendor({
+        ...vendor,
+        profile: {
+          public_id: "epic-uploads/defaults/default_avatar",
+          url: "https://res.cloudinary.com/dntsyzdh3/image/upload/v1703173095/epic-uploads/defaults/default_avatar.jpg",
+        },
+      });
+
+      await newVendor.save();
+      results.successCount++;
+    } catch (error) {
+      results.errors.push({
+        row: rowNumber,
+        email,
+        message: error.message || "An unknown error occurred during save.",
+      });
+    }
+  }
+
+  res.status(201).json(new SuccessResponse(201, "Bulk vendor processing complete.", results));
 });

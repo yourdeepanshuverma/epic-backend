@@ -1,5 +1,5 @@
 import { client } from "../config/googleClient.js";
-import Vendor from "../models/Vendor.js";
+import Vendor, { STATUSES } from "../models/Vendor.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import {
   deleteFromCloudinary,
@@ -263,18 +263,18 @@ export const updateVendor = asyncHandler(async (req, res, next) => {
   }
 
   if (filesToUpload.length > 0) {
-      const uploadedResults = await uploadToCloudinary(filesToUpload);
+    const uploadedResults = await uploadToCloudinary(filesToUpload);
 
-      const finalDocumentObj = {};
-      uploadedResults.forEach((upload, index) => {
-        const key = fileKeyMap[index];
-        finalDocumentObj[key] = upload;
-      });
+    const finalDocumentObj = {};
+    uploadedResults.forEach((upload, index) => {
+      const key = fileKeyMap[index];
+      finalDocumentObj[key] = upload;
+    });
 
-      req.body.documents = {
-        ...(vendor.documents || {}),
-        ...finalDocumentObj,
-      };
+    req.body.documents = {
+      ...(vendor.documents || {}),
+      ...finalDocumentObj,
+    };
   }
 
   // Prevent vendor from updating protected admin fields
@@ -323,11 +323,17 @@ export const sendPhoneUpdateOtp = asyncHandler(async (req, res, next) => {
   const otp = generateOtp();
   // Store OTP with new phone in redis (expires in 5m)
   // Format: "OTP:NEW_PHONE"
-  await redis.setex(`phone_update_otp:${req.vendor._id}`, 300, `${otp}:${phone}`);
+  await redis.setex(
+    `phone_update_otp:${req.vendor._id}`,
+    300,
+    `${otp}:${phone}`
+  );
 
   await sendOtpSms(phone, otp, "phone number update");
 
-  return res.status(200).json(new SuccessResponse(200, "OTP sent successfully"));
+  return res
+    .status(200)
+    .json(new SuccessResponse(200, "OTP sent successfully"));
 });
 
 export const verifyPhoneUpdateOtp = asyncHandler(async (req, res, next) => {
@@ -355,7 +361,6 @@ export const verifyPhoneUpdateOtp = asyncHandler(async (req, res, next) => {
     .status(200)
     .json(new SuccessResponse(200, "Phone number updated successfully"));
 });
-
 
 /* ======================================================
     GET VENDOR WALLET BALANCE
@@ -563,8 +568,20 @@ export const resetPassword = asyncHandler(async (req, res, next) => {
 /* ======================================================
    GET ALL VENDORS (Admin)
 ====================================================== */
-export const getAllVendors = asyncHandler(async (req, res) => {
-  const vendors = await Vendor.find()
+export const getAllVendors = asyncHandler(async (req, res, next) => {
+  const { status } = req.query;
+  console.log("Backend: Received req.query:", req.query);
+  const filter = {};
+
+  if (status && STATUSES.includes(status)) {
+    filter.status = status;
+  } else if (status && status !== "all") {
+    // If status is provided but not 'all' and not a valid status
+    return next(new ErrorResponse(400, "Invalid vendor status provided."));
+  }
+  console.log("Backend: Applied filter:", filter);
+
+  const vendors = await Vendor.find(filter)
     .populate("state")
     .populate("city")
     .sort({ createdAt: -1 });
@@ -592,7 +609,7 @@ export const getVendorById = asyncHandler(async (req, res, next) => {
 ====================================================== */
 export const updateVendorStatus = asyncHandler(async (req, res, next) => {
   const { status } = req.body;
-  if (!STATUS.includes(status)) {
+  if (!STATUSES.includes(status)) {
     return next(new ErrorResponse(400, "Invalid status value"));
   }
 
@@ -712,4 +729,81 @@ export const deleteVendor = asyncHandler(async (req, res, next) => {
         `Vendor ${vendor.vendorName} deleted successfully`
       )
     );
+});
+
+/* ======================================================
+   UPDATE VENDOR DETAILS (Admin)
+====================================================== */
+export const updateVendorDetailsByAdmin = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+  const vendor = await Vendor.findById(id);
+
+  if (!vendor) {
+    return next(new ErrorResponse(404, "Vendor not found"));
+  }
+
+  const payload = req.body;
+  
+  // Handle profile image update
+  if (req.files?.profile?.[0]) {
+    if (vendor.profile?.public_id) {
+      await deleteFromCloudinary([vendor.profile]);
+    }
+    const uploadedProfile = await uploadToCloudinary([req.files?.profile?.[0]]);
+    payload.profile = uploadedProfile[0];
+  }
+
+  // Handle cover image update
+  if (req.files?.coverImage?.[0]) {
+    if (vendor.coverImage?.public_id) {
+      await deleteFromCloudinary([vendor.coverImage]);
+    }
+    const uploadedCoverImage = await uploadToCloudinary([req.files.coverImage?.[0]]);
+    payload.coverImage = uploadedCoverImage[0];
+  }
+
+  // Handle document updates (gst, pan, idProof, registrationProof)
+  const docs = req.files;
+  const filesToUpload = [];
+  const fileKeyMap = [];
+
+  if (docs["documents[gst]"]) { filesToUpload.push(docs["documents[gst]"][0]); fileKeyMap.push("gst"); }
+  if (docs["documents[pan]"]) { filesToUpload.push(docs["documents[pan]"][0]); fileKeyMap.push("pan"); }
+  if (docs["documents[idProof]"]) { filesToUpload.push(docs["documents[idProof]"][0]); fileKeyMap.push("idProof"); }
+  if (docs["documents[registrationProof]"]) { filesToUpload.push(docs["documents[registrationProof]"][0]); fileKeyMap.push("registrationProof"); }
+
+  if (filesToUpload.length > 0) {
+      const uploadedResults = await uploadToCloudinary(filesToUpload);
+      const finalDocumentObj = {};
+      uploadedResults.forEach((upload, index) => {
+        const key = fileKeyMap[index];
+        finalDocumentObj[key] = upload;
+      });
+      payload.documents = {
+        ...(vendor.documents || {}), // Preserve existing documents if not replaced
+        ...finalDocumentObj,
+      };
+  }
+
+  // Prevent admin from updating certain sensitive/protected fields via this endpoint
+  const blockedFields = [
+    "password", // Password should have its own separate change mechanism
+    "email", // Email changes should involve verification
+    "phone", // Phone changes should involve OTP verification
+    "wallet",
+    "role",
+    "status", // Status should be updated via updateVendorStatus controller
+    "featured", // Featured status should be updated via toggleFeaturedVendor
+    "verifiedBadge", // Verified badge should be updated via toggleVerifyBadge
+    "adminNotes", // Admin notes should be updated via updateAdminNotesForVendor
+    "autoApprovePackages", // Auto-approve should be updated via toggleAutoApprovePackages
+  ];
+  blockedFields.forEach((field) => delete payload[field]);
+
+  // Update vendor with new data
+  Object.assign(vendor, payload);
+
+  await vendor.save({ validateBeforeSave: false }); // Validate only specific fields, not everything.
+
+  return res.status(200).json(new SuccessResponse(200, "Vendor details updated successfully by admin.", vendor));
 });
