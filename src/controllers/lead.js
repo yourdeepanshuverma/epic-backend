@@ -320,6 +320,11 @@ export const buyLeadBundle = asyncHandler(async (req, res, next) => {
     ADMIN: CREATE LEAD BUNDLE
 ====================================================== */
 export const createLeadBundle = asyncHandler(async(req, res) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
+
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
     const bundle = await LeadBundle.create(req.body);
     res.status(201).json(new SuccessResponse(201, "Bundle created", bundle));
 });

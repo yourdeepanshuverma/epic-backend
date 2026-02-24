@@ -3,6 +3,11 @@ import Vendor from "../models/Vendor.js";
 import SuccessResponse from "../utils/SuccessResponse.js";
 
 export const migrateVendorCredits = asyncHandler(async (req, res) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
+
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
   const vendors = await Vendor.find();
   let updatedCount = 0;
 

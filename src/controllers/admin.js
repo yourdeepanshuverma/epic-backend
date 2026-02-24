@@ -14,6 +14,12 @@ const DEFAULT_LEAD_COSTS = {
 };
 
 export const getSystemSettings = asyncHandler(async (req, res) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
+
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
+
   const { key } = req.params;
   let setting = await SystemSetting.findOne({ key });
 
@@ -32,6 +38,11 @@ export const getSystemSettings = asyncHandler(async (req, res) => {
 });
 
 export const updateSystemSettings = asyncHandler(async (req, res) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
+
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
   const { key } = req.params;
   const { value } = req.body;
 
@@ -61,6 +72,11 @@ export const checkAdmin = asyncHandler(async (req, res, next) => {
     ADMIN: GET ALL VENUE PACKAGES (With Filters)
 ====================================================== */
 export const getAdminVenuePackages = asyncHandler(async (req, res) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
+
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
   const { page = 1, limit = 10, status, search, vendor } = req.query;
 
   const filter = {};
@@ -101,6 +117,11 @@ export const getAdminVenuePackages = asyncHandler(async (req, res) => {
     ADMIN: GET ALL SERVICE PACKAGES (With Filters)
 ====================================================== */
 export const getAdminServicePackages = asyncHandler(async (req, res) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
+
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
   const { page = 1, limit = 10, status, search, vendor } = req.query;
 
   const filter = {};
@@ -140,6 +161,11 @@ export const getAdminServicePackages = asyncHandler(async (req, res) => {
     ADMIN: UPDATE PACKAGE STATUS (Approve/Reject)
 ====================================================== */
 export const updateVenuePackageStatus = asyncHandler(async (req, res, next) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
+
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
   const { id } = req.params;
   const { approved, visibility } = req.body;
 
@@ -155,6 +181,11 @@ export const updateVenuePackageStatus = asyncHandler(async (req, res, next) => {
 });
 
 export const updateServicePackageStatus = asyncHandler(async (req, res, next) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
+
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
   const { id } = req.params;
   const { approved, visibility } = req.body;
 
@@ -173,6 +204,12 @@ export const updateServicePackageStatus = asyncHandler(async (req, res, next) =>
     ADMIN: BULK CREATE VENDORS
 ====================================================== */
 export const bulkCreateVendors = asyncHandler(async (req, res, next) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
+
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
+
   const vendorsData = req.body;
 
   if (!Array.isArray(vendorsData) || vendorsData.length === 0) {

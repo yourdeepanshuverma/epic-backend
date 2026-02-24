@@ -7,6 +7,11 @@ import SuccessResponse from "../utils/SuccessResponse.js";
    Create Service
 ====================================================== */
 export const createService = asyncHandler(async (req, res, next) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
+
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
   const { name, icon, type } = req.body;
 
   if (!name) {
@@ -36,18 +41,55 @@ export const createService = asyncHandler(async (req, res, next) => {
 /* ======================================================
    Get All Services
 ====================================================== */
-export const getAllServices = asyncHandler(async (req, res) => {
-  const services = await Service.find().sort({ name: 1 });
+export const getAllServices = asyncHandler(async (req, res, next) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
 
-  return res
-    .status(200)
-    .json(new SuccessResponse(200, "Services fetched successfully", services));
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
+
+  // Pagination params 
+  const { page = 1, limit = 10 } = req.query;
+
+  // Safe parsing
+  const pageNumber = Math.max(1, parseInt(page));
+  const limitNumber = Math.max(1, parseInt(limit));
+  const skip = (pageNumber - 1) * limitNumber;
+
+  // Fetch paginated services 
+  const services = await Service.find()
+    .sort({ name: 1 }) // alphabetical
+    .skip(skip)
+    .limit(limitNumber);
+
+  // Total count for pagination metadata
+  const total = await Service.countDocuments();
+  const totalPages = Math.ceil(total / limitNumber);
+
+  return res.status(200).json(
+    new SuccessResponse(200, "Services fetched successfully", {
+      services,
+      pagination: {
+        total,
+        page: pageNumber,
+        limit: limitNumber,
+        totalPages,
+        hasNextPage: pageNumber < totalPages,
+        hasPrevPage: pageNumber > 1,
+      },
+    })
+  );
 });
 
 /* ======================================================
    Get Single Service
 ====================================================== */
 export const getServiceById = asyncHandler(async (req, res, next) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
+
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
   const service = await Service.findById(req.params.id);
 
   if (!service) {
@@ -69,6 +111,12 @@ export const getServiceById = asyncHandler(async (req, res, next) => {
    Update Service
 ====================================================== */
 export const updateService = asyncHandler(async (req, res, next) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
+
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
+
   const updated = await Service.findByIdAndUpdate(req.params.id, req.body, {
     new: true,
     runValidators: true,
@@ -93,6 +141,11 @@ export const updateService = asyncHandler(async (req, res, next) => {
    Delete Service
 ====================================================== */
 export const deleteService = asyncHandler(async (req, res, next) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
+
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
   const service = await Service.findById(req.params.id);
 
   if (!service) {

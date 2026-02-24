@@ -20,7 +20,7 @@ const port = process.env.PORT || 3000;
 const node_env = process.env.NODE_ENV || "development";
 
 dotenv.config({
-  path: node_env === "production" ? ".env.prod" : ".env.local",
+  path: node_env === "production" ? ".env" : ".env.local",
 });
 
 connectDB();

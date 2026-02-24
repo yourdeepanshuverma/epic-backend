@@ -10,6 +10,11 @@ import slugify from "slugify";
 
 // CREATE CATEGORY
 export const createServiceCategory = asyncHandler(async (req, res, next) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
+
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
   const { name, description } = req.body;
 
   if (!name) return next(new ErrorResponse(400, "Name is required"));
@@ -38,16 +43,52 @@ export const createServiceCategory = asyncHandler(async (req, res, next) => {
 });
 
 // GET ALL CATEGORIES
-export const getAllServiceCategories = asyncHandler(async (req, res) => {
-  const categories = await ServiceCategory.find();
+export const getAllServiceCategories = asyncHandler(async (req, res, next) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
 
-  res
-    .status(200)
-    .json(new SuccessResponse(200, "Categories fetched", categories));
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
+
+  const { page = 1, limit = 10 } = req.query;
+
+  // Safe number parsing
+  const pageNumber = Math.max(1, parseInt(page));
+  const limitNumber = Math.max(1, parseInt(limit));
+  const skip = (pageNumber - 1) * limitNumber;
+
+  // Fetch paginated categories
+  const categories = await ServiceCategory.find()
+    .sort({ createdAt: -1 }) // 
+    .skip(skip)
+    .limit(limitNumber);
+
+  // Total count for pagination metadata
+  const total = await ServiceCategory.countDocuments();
+  const totalPages = Math.ceil(total / limitNumber);
+
+  res.status(200).json(
+    new SuccessResponse(200, "Categories fetched", {
+      categories,
+      pagination: {
+        total,
+        page: pageNumber,
+        limit: limitNumber,
+        totalPages,
+        hasNextPage: pageNumber < totalPages,
+        hasPrevPage: pageNumber > 1,
+      },
+    })
+  );
 });
 
 // GET SINGLE CATEGORY
 export const getServiceCategory = asyncHandler(async (req, res, next) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
+
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
   const category = await ServiceCategory.findById(req.params.id);
 
   if (!category) return next(new ErrorResponse(404, "Category not found"));
@@ -57,6 +98,12 @@ export const getServiceCategory = asyncHandler(async (req, res, next) => {
 
 // UPDATE CATEGORY
 export const updateServiceCategory = asyncHandler(async (req, res, next) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
+
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
+
   const category = await ServiceCategory.findById(req.params.id);
   if (!category) return next(new ErrorResponse(404, "Category not found"));
 
@@ -107,6 +154,12 @@ export const updateServiceCategory = asyncHandler(async (req, res, next) => {
 
 // DELETE CATEGORY
 export const deleteServiceCategory = asyncHandler(async (req, res, next) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
+
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
+
   const category = await ServiceCategory.findById(req.params.id);
 
   if (!category) return next(new ErrorResponse(404, "Category not found"));

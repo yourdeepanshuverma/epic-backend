@@ -48,9 +48,9 @@ import {
   getCategory,
   updateCategory,
 } from "../controllers/venueCategory.js";
-import { getAdminCookies } from "../middlewares/authMiddleware.js";
+import { getAdminCookies, getAdminHeaders } from "../middlewares/authMiddleware.js";
 import { upload } from "../middlewares/multer.js";
-
+import { updateUserProfile } from "../controllers/user.js";
 import { createLeadBundle } from "../controllers/lead.js";
 import { migrateVendorCredits } from "../controllers/migration.js";
 
@@ -61,45 +61,45 @@ const router = Router();
 router.get("/check", getAdminCookies, checkAdmin); // tested
 
 // System Settings
-router.get("/settings/:key", getSystemSettings);
-router.put("/settings/:key", updateSystemSettings);
-router.post("/migrate-credits", migrateVendorCredits);
+router.get("/settings/:key",getAdminHeaders, getSystemSettings);
+router.put("/settings/:key", getAdminHeaders,updateSystemSettings);
+router.post("/migrate-credits",getAdminHeaders, migrateVendorCredits);
 
 // Admin Lead Bundle Management
-router.post("/lead-bundles", createLeadBundle);
+router.post("/lead-bundles",getAdminHeaders, createLeadBundle);
 
 // --- ADMIN PACKAGE MANAGEMENT ---
-router.get("/venue-packages", getAdminVenuePackages);
-router.put("/venue-packages/:id/status", updateVenuePackageStatus);
+router.get("/venue-packages", getAdminHeaders,getAdminVenuePackages); //-----------------------------------------------
+router.put("/venue-packages/:id/status", getAdminHeaders,updateVenuePackageStatus);
 
-router.get("/service-packages", getAdminServicePackages);
-router.put("/service-packages/:id/status", updateServicePackageStatus);
+router.get("/service-packages", getAdminHeaders,getAdminServicePackages); //------------------------------------------------
+router.put("/service-packages/:id/status",getAdminHeaders, updateServicePackageStatus);
 
 //#region service routes
-router.get("/services", getAllServices); // tested
-router.post("/services", createService); // tested
-router.get("/services/:id", getServiceById); // tested
-router.put("/services/:id", updateService); // tested
-router.delete("/services/:id", deleteService); // tested
+router.get("/services",getAdminHeaders, getAllServices); // tested ------------------------------------------------
+router.post("/services", getAdminHeaders,createService); // tested
+router.get("/services/:id",getAdminHeaders, getServiceById); // tested---------------------------------------------
+router.put("/services/:id", getAdminHeaders, updateService); // tested-----------------------------------------------
+router.delete("/services/:id", getAdminHeaders, deleteService); // tested
 //#endregion service routes
 
 //#region venue category routes
-router.post("/venue-categories", upload.single("image"), createCategory); // tested
-router.get("/venue-categories", getCategories); // tested
-router.get("/venue-categories/:id", getCategory); // tested
-router.put("/venue-categories/:id", upload.single("image"), updateCategory); // tested
-router.delete("/venue-categories/:id", deleteCategory); // tested
+router.post("/venue-categories", getAdminHeaders,upload.single("image"), createCategory); // tested
+router.get("/venue-categories", getAdminHeaders,getCategories); // tested------------------------------------------------
+router.get("/venue-categories/:id", getAdminHeaders,getCategory); // tested----------------------------------------------
+router.put("/venue-categories/:id",getAdminHeaders, upload.single("image"), updateCategory); // tested
+router.delete("/venue-categories/:id", getAdminHeaders,deleteCategory); // tested
 //#endregion venue category routes
 
 //#region vendor management routes
-router.get("/vendors", getAllVendors); // tested
-router.post("/vendors/bulk-create", bulkCreateVendors); // new route
-router.get("/vendors/:id", getVendorById); // tested
-router.put("/vendors/:id/status", updateVendorStatus); // tested
-router.delete("/vendors/:id", deleteVendor); // tested
+router.get("/vendors", getAdminHeaders,getAllVendors); // tested ------------------------------------------------
+router.post("/vendors/bulk-create", getAdminHeaders,bulkCreateVendors); // new route
+router.get("/vendors/:id", getAdminHeaders,getVendorById); // tested ------------------------------------------------
+router.put("/vendors/:id/status", getAdminHeaders,updateVendorStatus); // tested
+router.delete("/vendors/:id", getAdminHeaders, deleteVendor); // tested   ########
 
 router.put(
-  "/vendors/:id",
+  "/vendors/:id",getAdminHeaders,
   upload.fields([
     { name: 'profile', maxCount: 1 },
     { name: 'coverImage', maxCount: 1 },
@@ -112,59 +112,63 @@ router.put(
 ); // New route for admin to update full vendor details
 
 // Mark vendor as featured/unfeatured
-router.put("/vendors/:id/toggle-featured", toggleFeaturedVendor); // tested
+router.put("/vendors/:id/toggle-featured", getAdminHeaders,toggleFeaturedVendor); // tested
 
 // Toggle verify badge
-router.put("/vendors/:id/toggle-verify", toggleVerifyBadge); // tested
+router.put("/vendors/:id/toggle-verify",getAdminHeaders, toggleVerifyBadge); // tested
 
 // Update admin notes
-router.put("/vendors/:id/admin-notes", updateAdminNotesForVendor); // tested
+router.put("/vendors/:id/admin-notes", getAdminHeaders, updateAdminNotesForVendor); // tested
 
 // Update auto-approve packages setting
-router.put("/vendors/:id/toggle-auto-approve", toggleAutoApprovePackages); // tested
+router.put("/vendors/:id/toggle-auto-approve", getAdminHeaders,toggleAutoApprovePackages); // tested
 
 //#endregion VENDOR MANAGEMENT ROUTES
 
 //#region service category routes
 router.post(
-  "/service-categories",
+  "/service-categories",getAdminHeaders,
   upload.single("image"),
   createServiceCategory
 ); // tested
 
-router.get("/service-categories", getAllServiceCategories); // tested
+router.get("/service-categories",getAdminHeaders, getAllServiceCategories); // tested -------------------------------------
 
-router.get("/service-categories/:id", getServiceCategory);
+router.get("/service-categories/:id", getAdminHeaders,getServiceCategory);// tested -------------------------------------
 
 router.put(
   "/service-categories/:id",
+  getAdminHeaders,
   upload.single("image"),
   updateServiceCategory
 ); // tested
 
-router.delete("/service-categories/:id", deleteServiceCategory);
+router.delete("/service-categories/:id",getAdminHeaders, deleteServiceCategory);
 
 //#endregion service category routes
 
 //#region service sub-category routes
 router.post(
-  "/service-sub-categories",
+  "/service-sub-categories",getAdminHeaders,
   upload.single("image"),
   createServiceSubCategory
 ); // tested
 
-router.get("/service-sub-categories", getAllServiceSubCategories); // tested
+router.get("/service-sub-categories",getAdminHeaders, getAllServiceSubCategories); // tested---------------------------------
 
-router.get("/service-sub-categories/:id", getServiceSubCategory); // tested
+router.get("/service-sub-categories/:id", getAdminHeaders,getServiceSubCategory); // tested----------------------------------
 
 router.put(
-  "/service-sub-categories/:id",
+  "/service-sub-categories/:id",getAdminHeaders,
   upload.single("image"),
   updateServiceSubCategory
 ); // tested
 
-router.delete("/service-sub-categories/:id", deleteServiceSubCategory); // tested
+router.delete("/service-sub-categories/:id",getAdminHeaders, deleteServiceSubCategory); // tested
 
 //#endregion service sub-category routes
+
+
+router.put("/user-status/:id", getAdminHeaders,updateUserProfile); // tested
 
 export default router;

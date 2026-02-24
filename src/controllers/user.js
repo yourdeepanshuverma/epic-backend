@@ -6,6 +6,10 @@ import generateToken from "../utils/generateToken.js";
 import { uploadToCloudinary } from "../utils/cloudinary.js";
 import { client } from "../config/googleClient.js";
 
+import redis from "../config/redisClient.js";
+import { generateOtp } from "../utils/helper.js";
+import { sendOtpSms } from "../utils/smsService.js";
+
 // @desc    Register a new user
 // @route   POST /api/v1/user/register
 // @access  Public
@@ -119,17 +123,26 @@ export const getUserProfile = asyncHandler(async (req, res, next) => {
 // @route   PUT /api/v1/user/profile
 // @access  Private
 export const updateUserProfile = asyncHandler(async (req, res, next) => {
-  const user = await User.findById(req.user._id);
+  const user = await User.findById(req.params.id); // Use :id since admin route
 
   if (!user) {
     return next(new ErrorResponse(404, "User not found"));
   }
 
-  const { fullName, phone } = req.body;
+  const { fullName, phone, isActive } = req.body;
 
-  if (fullName) user.fullName = fullName;
-  if (phone) user.phone = phone;
+  // Update basic fields
+  if (fullName !== undefined) user.fullName = fullName;
+  if (phone !== undefined) user.phone = phone;
 
+  if (isActive !== undefined) {
+    if (typeof isActive !== "boolean") {
+      return next(new ErrorResponse(400, "isActive must be true or false"));
+    }
+    user.isActive = isActive;
+  }
+
+  // Profile image upload (existing logic)
   if (req.file) {
     const uploaded = await uploadToCloudinary([req.file]);
     if (uploaded && uploaded.length > 0) {
@@ -229,4 +242,68 @@ export const googleAuth = asyncHandler(async (req, res, next) => {
       )
     );
   }
+});
+
+
+// Send forget OTP
+// Forget password - send OTP
+export const sendForgotPasswordOtp = asyncHandler(async (req, res, next) => {
+  const { phone } = req.body;
+
+  if (!phone || !/^[6-9]\d{9}$/.test(phone))
+    return next(new ErrorResponse(400, "Invalid phone number"));
+
+  const user = await User.findOne({ phone });
+  if (!user) return next(new ErrorResponse(404, "User not found"));
+
+  // Prevent resending too fast
+  if (await redis.get(`forget_password_otp:${phone}`)) {
+    return next(new ErrorResponse(400, "OTP already sent. Please wait."));
+  }
+
+  const otp = generateOtp();
+  await redis.setex(`forget_password_otp:${phone}`, 300, otp); // expires in 5 min
+
+  await sendOtpSms(phone, otp, "password reset");
+  res.status(200).json(new SuccessResponse(200, "OTP sent successfully"));
+});
+
+// Verify OTP for forget password
+export const verifyForgotPasswordOtp = asyncHandler(async (req, res, next) => {
+  const { phone, otp } = req.body;
+
+  const storedOtp = await redis.get(`forget_password_otp:${phone}`);
+  if (!storedOtp) return next(new ErrorResponse(400, "OTP expired or invalid"));
+  if (storedOtp !== otp) return next(new ErrorResponse(400, "Invalid OTP"));
+
+  // OTP verified → allow user to reset password
+  await redis.del(`forget_password_otp:${phone}`);
+  await redis.setex(`resetUserToken:${phone}`, 600, "verified"); // 10 min reset token
+
+  res
+    .status(200)
+    .json(
+      new SuccessResponse(200, "OTP verified, you may now reset your password.")
+    );
+});
+
+// Reset password
+export const resetPassword = asyncHandler(async (req, res, next) => {
+  const { phone, newPassword } = req.body;
+
+  const verified = await redis.get(`resetUserToken:${phone}`);
+
+  if (!verified)
+    return next(
+      new ErrorResponse(403, "Session expired. Please reverify OTP.")
+    );
+
+  const user = await User.findOne({ phone });
+  if (!user) return next(new ErrorResponse(404, "User not found"));
+
+  user.password = newPassword;
+  await user.save();
+
+  await redis.del(`resetUserToken:${phone}`); // invalidate token
+  res.status(200).json(new SuccessResponse(200, "Password reset successfully"));
 });

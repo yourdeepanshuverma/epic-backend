@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "dotenvx run --env-file .env.prod -- node src/index.js",
+    "start": "dotenvx run --env-file .env -- node src/index.js",
     "dev": "dotenvx run --env-file .env.local -- nodemon src/index.js"
   },
   "keywords": [],
@@ -12,7 +12,7 @@
   "license": "ISC",
   "type": "module",
   "devDependencies": {
-    "nodemon": "^3.1.11"
+    "nodemon": "^3.1.14"
   },
   "dependencies": {
     "@dotenvx/dotenvx": "^1.51.1",
@@ -21,6 +21,7 @@
     "cloudinary": "^2.8.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "dns": "^0.2.2",
     "express": "^5.1.0",
     "express-validator": "^7.3.1",
     "google-auth-library": "^10.5.0",

@@ -11,6 +11,11 @@ import mongoose from "mongoose";
    CREATE CATEGORY
 ====================================================== */
 export const createCategory = asyncHandler(async (req, res, next) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
+
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
   const { name, services, description } = req.body;
 
   if (!name) {
@@ -75,22 +80,56 @@ export const createCategory = asyncHandler(async (req, res, next) => {
 /* ======================================================
    GET ALL CATEGORIES (Paginated)
 ====================================================== */
-export const getCategories = asyncHandler(async (req, res) => {
-  const categories = await VenueCategory.find()
-    .populate("services")
-    .sort({ name: 1 });
+export const getCategories = asyncHandler(async (req, res, next) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
 
-  res
-    .status(200)
-    .json(
-      new SuccessResponse(200, "Categories fetched successfully", categories)
-    );
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
+
+  // Pagination params (optional, backward compatible)
+  const { page = 1, limit = 10 } = req.query;
+
+  // Safe parsing
+  const pageNumber = Math.max(1, parseInt(page));
+  const limitNumber = Math.max(1, parseInt(limit));
+  const skip = (pageNumber - 1) * limitNumber;
+
+  // Fetch paginated categories with populate
+  const categories = await VenueCategory.find()
+    .populate("services") // keeping your original populate
+    .sort({ name: 1 }) // original sorting preserved
+    .skip(skip)
+    .limit(limitNumber);
+
+  // Total count for pagination metadata
+  const total = await VenueCategory.countDocuments();
+  const totalPages = Math.ceil(total / limitNumber);
+
+  res.status(200).json(
+    new SuccessResponse(200, "Categories fetched successfully", {
+      categories,
+      pagination: {
+        total,
+        page: pageNumber,
+        limit: limitNumber,
+        totalPages,
+        hasNextPage: pageNumber < totalPages,
+        hasPrevPage: pageNumber > 1,
+      },
+    })
+  );
 });
 
 /* ======================================================
    GET SINGLE CATEGORY
 ====================================================== */
 export const getCategory = asyncHandler(async (req, res, next) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
+
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
   const category = await VenueCategory.findById(req.params.id).populate(
     "services"
   );
@@ -106,6 +145,11 @@ export const getCategory = asyncHandler(async (req, res, next) => {
    UPDATE CATEGORY
 ====================================================== */
 export const updateCategory = asyncHandler(async (req, res, next) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
+
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
   const { name, services, description } = req.body;
 
   const category = await VenueCategory.findById(req.params.id);
@@ -171,6 +215,11 @@ export const updateCategory = asyncHandler(async (req, res, next) => {
    DELETE CATEGORY
 ====================================================== */
 export const deleteCategory = asyncHandler(async (req, res, next) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
+
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
   const category = await VenueCategory.findById(req.params.id);
   if (!category) return next(new ErrorResponse(404, "Category not found"));
 

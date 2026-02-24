@@ -51,6 +51,53 @@ const getVendorHeaders = asyncHandler(async (req, _, next) => {
   }
 });
 
+const getAdminHeaders = asyncHandler(async (req, _, next) => {
+  let token;
+
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    try {
+      token = req.headers.authorization.split(" ")[1];
+
+      //decodes token id
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+      const vendor = await Vendor.findById(decoded.id).select(
+        "_id role status verifiedBadge lastActive"
+      );
+      if (vendor.role !== "admin") {
+        return next(new ErrorResponse(403, "Access denied. Admins only."));
+      }
+      if (!vendor) {
+        return next(new ErrorResponse(401, "Not authorized"));
+      }
+
+      const now = Date.now();
+
+      // update only if 2 minutes old
+      if (!vendor.lastActive || now - vendor.lastActive > 120000) {
+        vendor.lastActive = Date.now();
+        try {
+          await vendor.save({ validateBeforeSave: false });
+        } catch (err) {
+          console.error("Error updating vendor lastActive:", err.message);
+        }
+      }
+      req.vendor = vendor;
+
+      next();
+    } catch (error) {
+      return next(new ErrorResponse(401, "Not authorized, token failed"));
+    }
+  }
+
+  if (!token) {
+    return next(new ErrorResponse(401, "Please login to access this route"));
+  }
+});
+
 const getUserHeaders = asyncHandler(async (req, _, next) => {
   let token;
 
@@ -105,4 +152,4 @@ const getAdminCookies = asyncHandler(async (req, _, next) => {
   next();
 });
 
-export { getVendorHeaders, getUserHeaders, getAdminCookies };
+export { getVendorHeaders, getUserHeaders, getAdminCookies, getAdminHeaders };

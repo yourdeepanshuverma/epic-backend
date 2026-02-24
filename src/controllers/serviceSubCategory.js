@@ -12,6 +12,11 @@ import slugify from "slugify";
 import mongoose from "mongoose";
 
 export const createServiceSubCategory = asyncHandler(async (req, res, next) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
+
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
   const { name, serviceCategory, services, description } = req.body;
 
   if (!name) return next(new ErrorResponse(400, "Name is required"));
@@ -70,22 +75,57 @@ export const createServiceSubCategory = asyncHandler(async (req, res, next) => {
     );
 });
 
-export const getAllServiceSubCategories = asyncHandler(async (req, res) => {
-  const { serviceCategory } = req.query;
+export const getAllServiceSubCategories = asyncHandler(async (req, res, next) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
+
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
+
+  
+  const { serviceCategory, page = 1, limit = 10 } = req.query;
+
 
   const filter = {};
   if (serviceCategory) filter.serviceCategory = serviceCategory;
 
+  const pageNumber = Math.max(1, parseInt(page));
+  const limitNumber = Math.max(1, parseInt(limit));
+  const skip = (pageNumber - 1) * limitNumber;
+
+  // Fetch paginated data
   const data = await ServiceSubCategory.find(filter)
     .populate("serviceCategory", "name image")
-    .populate("services", "name icon fields");
+    .populate("services", "name icon fields")
+    .sort({ createdAt: -1 }) 
+    .skip(skip)
+    .limit(limitNumber);
 
-  res
-    .status(200)
-    .json(new SuccessResponse(200, "Sub-categories fetched", data));
+  // Total count for pagination metadata
+  const total = await ServiceSubCategory.countDocuments(filter);
+  const totalPages = Math.ceil(total / limitNumber);
+
+  res.status(200).json(
+    new SuccessResponse(200, "Sub-categories fetched", {
+      subCategories: data,
+      pagination: {
+        total,
+        page: pageNumber,
+        limit: limitNumber,
+        totalPages,
+        hasNextPage: pageNumber < totalPages,
+        hasPrevPage: pageNumber > 1,
+      },
+    })
+  );
 });
 
 export const getServiceSubCategory = asyncHandler(async (req, res, next) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
+
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
   const data = await ServiceSubCategory.findById(req.params.id)
     .populate("serviceCategory", "name image")
     .populate("services", "name icon fields");
@@ -96,6 +136,11 @@ export const getServiceSubCategory = asyncHandler(async (req, res, next) => {
 });
 
 export const updateServiceSubCategory = asyncHandler(async (req, res, next) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
+
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
   const subCategory = await ServiceSubCategory.findById(req.params.id);
 
   if (!subCategory)
@@ -165,6 +210,11 @@ export const updateServiceSubCategory = asyncHandler(async (req, res, next) => {
 });
 
 export const deleteServiceSubCategory = asyncHandler(async (req, res, next) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
+
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
   const subCategory = await ServiceSubCategory.findById(req.params.id);
 
   if (!subCategory)

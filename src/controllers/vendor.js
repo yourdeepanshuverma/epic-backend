@@ -555,7 +555,7 @@ export const resetPassword = asyncHandler(async (req, res, next) => {
       new ErrorResponse(403, "Session expired. Please reverify OTP.")
     );
 
-  const vendor = await Vendor.findOne({ contactPhone: phone });
+  const vendor = await Vendor.findOne({phone });
   if (!vendor) return next(new ErrorResponse(404, "Vendor not found"));
 
   vendor.password = newPassword;
@@ -569,32 +569,69 @@ export const resetPassword = asyncHandler(async (req, res, next) => {
    GET ALL VENDORS (Admin)
 ====================================================== */
 export const getAllVendors = asyncHandler(async (req, res, next) => {
-  const { status } = req.query;
-  console.log("Backend: Received req.query:", req.query);
+  const isAdmin = req.vendor && req.vendor.role === "admin";
+
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
+
+  // Query params
+  const { status, page = 1, limit = 10 } = req.query;
+
+  // console.log("Backend: Received req.query:", req.query);
+
   const filter = {};
 
+  // Status filtering (existing logic)
   if (status && STATUSES.includes(status)) {
     filter.status = status;
   } else if (status && status !== "all") {
-    // If status is provided but not 'all' and not a valid status
     return next(new ErrorResponse(400, "Invalid vendor status provided."));
   }
-  console.log("Backend: Applied filter:", filter);
 
+  // console.log("Backend: Applied filter:", filter);
+
+  const pageNumber = Math.max(1, parseInt(page));
+  const limitNumber = Math.max(1, parseInt(limit));
+  const skip = (pageNumber - 1) * limitNumber;
+
+  // Fetch paginated vendors
   const vendors = await Vendor.find(filter)
     .populate("state")
     .populate("city")
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limitNumber);
 
-  return res
-    .status(200)
-    .json(new SuccessResponse(200, "All vendors fetched", vendors));
+  // Total count for pagination metadata
+  const totalVendors = await Vendor.countDocuments(filter);
+
+  const totalPages = Math.ceil(totalVendors / limitNumber);
+
+  return res.status(200).json(
+    new SuccessResponse(200, "All vendors fetched", {
+      vendors,
+      pagination: {
+        total: totalVendors,
+        page: pageNumber,
+        limit: limitNumber,
+        totalPages,
+        hasNextPage: pageNumber < totalPages,
+        hasPrevPage: pageNumber > 1,
+      },
+    })
+  );
 });
 
 /* ======================================================
    GET SINGLE VENDOR (Admin)
 ====================================================== */
 export const getVendorById = asyncHandler(async (req, res, next) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
+
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
   const vendor = await Vendor.findById(req.params.id);
 
   if (!vendor) return next(new ErrorResponse(404, "Vendor not found"));
@@ -608,6 +645,11 @@ export const getVendorById = asyncHandler(async (req, res, next) => {
     UPDATE VENDOR ADMIN SETTINGS
 ====================================================== */
 export const updateVendorStatus = asyncHandler(async (req, res, next) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
+
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
   const { status } = req.body;
   if (!STATUSES.includes(status)) {
     return next(new ErrorResponse(400, "Invalid status value"));
@@ -627,6 +669,11 @@ export const updateVendorStatus = asyncHandler(async (req, res, next) => {
    TOGGLE FEATURED VENDOR (Admin)
 ====================================================== */
 export const toggleFeaturedVendor = asyncHandler(async (req, res, next) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
+
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
   const vendor = await Vendor.findById(req.params.id);
   if (!vendor) return next(new ErrorResponse(404, "Vendor not found"));
   vendor.featured = !vendor.featured;
@@ -646,6 +693,11 @@ export const toggleFeaturedVendor = asyncHandler(async (req, res, next) => {
     TOGGLE VERIFY BADGE (Admin)
 ====================================================== */
 export const toggleVerifyBadge = asyncHandler(async (req, res, next) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
+
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
   const vendor = await Vendor.findById(req.params.id);
   if (!vendor) return next(new ErrorResponse(404, "Vendor not found"));
   vendor.verifiedBadge = !vendor.verifiedBadge;
@@ -670,6 +722,11 @@ export const toggleVerifyBadge = asyncHandler(async (req, res, next) => {
 ====================================================== */
 export const updateAdminNotesForVendor = asyncHandler(
   async (req, res, next) => {
+    const isAdmin = req.vendor && req.vendor.role === "admin";
+
+    if (!isAdmin) {
+      return next(new ErrorResponse(403, "Access denied. Admins only."));
+    }
     const vendor = await Vendor.findById(req.params.id);
     if (!vendor) return next(new ErrorResponse(404, "Vendor not found"));
     vendor.adminNotes = req.body.adminNotes ?? vendor.adminNotes;
@@ -686,6 +743,11 @@ export const updateAdminNotesForVendor = asyncHandler(
 ====================================================== */
 export const toggleAutoApprovePackages = asyncHandler(
   async (req, res, next) => {
+    const isAdmin = req.vendor && req.vendor.role === "admin";
+
+    if (!isAdmin) {
+      return next(new ErrorResponse(403, "Access denied. Admins only."));
+    }
     const vendor = await Vendor.findById(req.params.id);
     if (!vendor) return next(new ErrorResponse(404, "Vendor not found"));
     vendor.autoApprovePackages = !vendor.autoApprovePackages;
@@ -709,6 +771,12 @@ export const toggleAutoApprovePackages = asyncHandler(
    DELETE VENDOR (Admin)
 ====================================================== */
 export const deleteVendor = asyncHandler(async (req, res, next) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
+
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
+
   const vendor = await Vendor.findById(req.params.id);
   if (!vendor) {
     return next(new ErrorResponse(404, "Vendor not found"));
@@ -735,6 +803,11 @@ export const deleteVendor = asyncHandler(async (req, res, next) => {
    UPDATE VENDOR DETAILS (Admin)
 ====================================================== */
 export const updateVendorDetailsByAdmin = asyncHandler(async (req, res, next) => {
+  const isAdmin = req.vendor && req.vendor.role === "admin";
+
+  if (!isAdmin) {
+    return next(new ErrorResponse(403, "Access denied. Admins only."));
+  }
   const { id } = req.params;
   const vendor = await Vendor.findById(id);
 
