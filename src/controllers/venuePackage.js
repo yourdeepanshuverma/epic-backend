@@ -25,6 +25,8 @@ export const createVenuePackage = asyncHandler(async (req, res, next) => {
     startingPrice,
     location,
     services,
+    latitude,
+    longitude
   } = req.body;
 
   // ---------------------------
@@ -54,6 +56,34 @@ export const createVenuePackage = asyncHandler(async (req, res, next) => {
 
   if (invalidLocation)
     return next(new ErrorResponse(400, "Location fields missing"));
+/* ================= GEO LOCATION LOGIC ================= */
+
+  let lat = latitude ? parseFloat(latitude) : null;
+  let lng = longitude ? parseFloat(longitude) : null;
+
+  // Auto extract from Google Maps link if lat/lng not provided
+  if ((!lat || !lng) && location.googleMapsLink) {
+    const match = location.googleMapsLink.match(/q=([-.\d]+),([-.\d]+)/);
+    if (match) {
+      lat = parseFloat(match[1]);
+      lng = parseFloat(match[2]);
+    }
+  }
+
+  if (!lat || !lng) {
+    return next(
+      new ErrorResponse(
+        400,
+        "Latitude and Longitude or valid Google Maps link is required"
+      )
+    );
+  }
+
+  // IMPORTANT: MongoDB format = [longitude, latitude]
+  const geo_loc = {
+    type: "Point",
+    coordinates: [lng, lat],
+  };
 
   const countryExists = await Country.exists({
     name: new RegExp(`^${location.country}$`, "i"),
@@ -146,6 +176,7 @@ export const createVenuePackage = asyncHandler(async (req, res, next) => {
     featuredImage,
     startingPrice,
     location,
+    geo_loc,
     services: servicesArray,
     approved: req.vendor?.autoApprovePackages,
   });

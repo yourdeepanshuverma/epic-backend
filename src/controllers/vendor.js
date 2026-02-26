@@ -73,6 +73,8 @@ export const createVendor = asyncHandler(async (req, res, next) => {
     address,
     pincode,
     googleMapLink,
+    latitude,     
+    longitude,    
     contactPerson,
     phone,
     email,
@@ -113,7 +115,6 @@ export const createVendor = asyncHandler(async (req, res, next) => {
   }
 
   let documents = {};
-
   const docs = req.files;
 
   const filesToUpload = [];
@@ -146,6 +147,22 @@ export const createVendor = asyncHandler(async (req, res, next) => {
 
   documents = finalDocumentObj;
 
+  let location = undefined;
+
+  if (latitude && longitude) {
+    const lat = parseFloat(latitude);
+    const lng = parseFloat(longitude);
+
+    if (isNaN(lat) || isNaN(lng)) {
+      return next(new ErrorResponse(400, "Invalid latitude or longitude"));
+    }
+
+    location = {
+      type: "Point",
+      coordinates: [lng, lat], //  [longitude, latitude]
+    };
+  }
+
   const vendor = await Vendor.create({
     vendorName,
     profile,
@@ -159,6 +176,7 @@ export const createVendor = asyncHandler(async (req, res, next) => {
     address,
     pincode,
     googleMapLink,
+    location, 
     coverImage,
     documents,
     contactPerson,
@@ -177,22 +195,19 @@ export const createVendor = asyncHandler(async (req, res, next) => {
 
   const token = generateToken(vendor._id);
 
-  res
-    .status(201)
-    .json(
-      new SuccessResponse(
-        201,
-        `Vendor ${vendor.vendorName} created successfully`,
-        { vendor, token }
-      )
-    );
+  res.status(201).json(
+    new SuccessResponse(
+      201,
+      `Vendor ${vendor.vendorName} created successfully`,
+      { vendor, token }
+    )
+  );
 
   await sendEmail(
     vendor.email,
     "Vendor Registration Successful",
     `
     <h3>Dear ${vendor.vendorName},</h3>
-
     <p>We are excited to have you on board!</p>
     <p>Your vendor account has been successfully created.</p>
     <p>Your login email: ${vendor.email}</p>

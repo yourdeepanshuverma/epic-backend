@@ -126,7 +126,6 @@ const vendorSchema = new Schema(
       type: String,
       required: true,
     },
-
     locality: {
       type: String,
       required: true,
@@ -138,12 +137,24 @@ const vendorSchema = new Schema(
       required: true,
       trim: true,
     },
-
     pincode: {
       type: String,
     },
 
     googleMapLink: String,
+
+    location: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point",
+        required: true,
+      },
+      coordinates: {
+        type: [Number],
+        required: true,
+      },
+    },
 
     // ----------------------
     // MEDIA
@@ -262,6 +273,8 @@ vendorSchema.pre("save", async function () {
 vendorSchema.methods.isPasswordCorrect = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
+
+vendorSchema.index({location: "2dsphere"})
 
 const Vendor = mongoose.models.Vendor || model("Vendor", vendorSchema);
 

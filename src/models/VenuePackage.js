@@ -111,12 +111,22 @@ const venuePackageSchema = new Schema(
         ref: "Country",
         required: [true, "Country is required"],
       },
-      googleMapsLink: {
-        type: String,
-      },
+      googleMapsLink: { type: String },
       pincode: {
         type: String,
-        required: [true, "Pincode is required"],
+        required: true,
+      },
+    },
+    geo_loc: { 
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point",
+        required: true,
+      },
+      coordinates: {
+        type: [Number], // [lng, lat]
+        required: true,
       },
     },
     services: [
@@ -183,7 +193,7 @@ venuePackageSchema.pre("save", async function () {
   // _id always available before save
   this.slug = `${baseSlug}-${citySlug}-${this._id.toString()}`;
 });
-
+venuePackageSchema.index({geo_loc: "2dsphere"})
 const VenuePackage =
   mongoose.models.VenuePackage || model("VenuePackage", venuePackageSchema);
 
