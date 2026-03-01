@@ -64,8 +64,12 @@ import {
 import { getCategoriesForVenuePackage } from "../controllers/venueCategory.js";
 import { getCategoriesForServicePackage } from "../controllers/serviceCategory.js";
 import { getServiceSubCategoriesForPackage } from "../controllers/serviceSubCategory.js";
+import { refreshAccessToken } from "../controllers/authController.js";
+
 
 const router = express.Router();
+
+router.post("/refresh", refreshAccessToken);
 
 /* ============================================================================
     GOOGLE OAUTH ROUTES
@@ -81,7 +85,7 @@ router.post("/login", vendorLogin); // tested
     CREATE VENDOR ROUTE
 ============================================================================= */
 router.post(
-  "/",
+  "/create",
   upload.fields([
     { name: "profile", maxCount: 1 },
     { name: "coverImage", maxCount: 1 },

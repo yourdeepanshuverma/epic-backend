@@ -243,12 +243,16 @@ const vendorSchema = new Schema(
       type: Date,
       default: Date.now,
     },
-
+    refreshToken: {
+      type: String,
+      default: null,
+    },
     autoApprovePackages: {
       type: Boolean,
       default: false,
     },
   },
+
   { timestamps: true }
 );
 

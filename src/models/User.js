@@ -48,6 +48,10 @@ const userSchema = new Schema(
       enum: ["user"],
       default: "user",
     },
+    refreshToken: {
+      type: String,
+      default: null,
+    },
     isActive: {
       type: Boolean,
       default: true,

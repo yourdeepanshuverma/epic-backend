@@ -48,17 +48,22 @@ import {
   getCategory,
   updateCategory,
 } from "../controllers/venueCategory.js";
-import { getAdminCookies, getAdminHeaders } from "../middlewares/authMiddleware.js";
+import { getAdminHeaders } from "../middlewares/authMiddleware.js";
 import { upload } from "../middlewares/multer.js";
 import { updateUserProfile } from "../controllers/user.js";
 import { createLeadBundle } from "../controllers/lead.js";
 import { migrateVendorCredits } from "../controllers/migration.js";
+import { refreshAccessToken } from "../controllers/authController.js";
 
 // import adminAuth from "../middlewares/adminAuth.js"; // optional, if Admin-only
 
 const router = Router();
 
-router.get("/check", getAdminCookies, checkAdmin); // tested
+router.get("/check", getAdminHeaders, checkAdmin); // tested
+
+//access token refresh route
+router.post("/refresh", refreshAccessToken);
+
 
 // System Settings
 router.get("/settings/:key",getAdminHeaders, getSystemSettings);

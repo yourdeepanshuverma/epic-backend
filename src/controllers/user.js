@@ -2,13 +2,15 @@ import asyncHandler from "../utils/asyncHandler.js";
 import User from "../models/User.js";
 import ErrorResponse from "../utils/ErrorResponse.js";
 import SuccessResponse from "../utils/SuccessResponse.js";
-import generateToken from "../utils/generateToken.js";
+import {generateAccessToken,generateRefreshToken} from "../utils/generateToken.js";
 import { uploadToCloudinary } from "../utils/cloudinary.js";
 import { client } from "../config/googleClient.js";
 
 import redis from "../config/redisClient.js";
 import { generateOtp } from "../utils/helper.js";
 import { sendOtpSms } from "../utils/smsService.js";
+import Vendor from "../models/Vendor.js";
+import VenuePackage from "../models/VenuePackage.js";
 
 // @desc    Register a new user
 // @route   POST /api/v1/user/register
@@ -48,7 +50,11 @@ export const registerUser = asyncHandler(async (req, res, next) => {
     profile,
   });
 
-  const token = generateToken(user._id);
+  const accessToken = generateAccessToken(user._id);
+  const refreshToken = generateRefreshToken(user._id);
+  user.refreshToken = refreshToken;
+  await user.save({ validateBeforeSave: false });
+
 
   res.status(201).json(
     new SuccessResponse(201, "User registered successfully", {
@@ -58,8 +64,9 @@ export const registerUser = asyncHandler(async (req, res, next) => {
         email: user.email,
         profile: user.profile,
         role: user.role,
+        refreshToken: user.refreshToken,
       },
-      token,
+      accessToken,
     })
   );
 });
@@ -90,7 +97,10 @@ export const loginUser = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse(403, "Your account is inactive"));
   }
 
-  const token = generateToken(user._id);
+  const accessToken = generateAccessToken(user._id);
+  const refreshToken = generateRefreshToken(user._id);
+  user.refreshToken = refreshToken;
+  await user.save({ validateBeforeSave: false });
 
   res.status(200).json(
     new SuccessResponse(200, "Login successful", {
@@ -100,8 +110,9 @@ export const loginUser = asyncHandler(async (req, res, next) => {
         email: user.email,
         profile: user.profile,
         role: user.role,
+        refreshToken: user.refreshToken,
       },
-      token,
+      accessToken,
     })
   );
 });
@@ -217,7 +228,10 @@ export const googleAuth = asyncHandler(async (req, res, next) => {
       return next(new ErrorResponse(403, "Your account is inactive"));
     }
 
-    const token = generateToken(user._id);
+    const accessToken = generateAccessToken(user._id);
+    const refreshToken = generateRefreshToken(user._id);
+    user.refreshToken = refreshToken;
+    await user.save({ validateBeforeSave: false });
 
     res.status(200).json(
       new SuccessResponse(200, "Login successful", {
@@ -228,7 +242,8 @@ export const googleAuth = asyncHandler(async (req, res, next) => {
           profile: user.profile,
           role: user.role,
         },
-        token,
+        accessToken,
+        refreshToken,
       })
     );
   } catch (error) {
@@ -306,4 +321,129 @@ export const resetPassword = asyncHandler(async (req, res, next) => {
 
   await redis.del(`resetUserToken:${phone}`); // invalidate token
   res.status(200).json(new SuccessResponse(200, "Password reset successfully"));
+});
+
+
+// search vendor near me
+export const searchNearMe = asyncHandler(async (req, res, next) => {
+  let { latitude, longitude, radius = 10, page = 1, limit = 10 } = req.query;
+
+  if (!latitude || !longitude) {
+    return next(new ErrorResponse(400, "Latitude and Longitude are required"));
+  }
+
+  const lat = parseFloat(latitude);
+  const lng = parseFloat(longitude);
+
+  const radiusInMeters = parseFloat(radius) * 1000;
+
+  const pageNumber = Math.max(1, parseInt(page));
+  const limitNumber = Math.max(1, parseInt(limit));
+  const skip = (pageNumber - 1) * limitNumber;
+
+  const vendors = await Vendor.find({
+    status: "active",
+    location: {
+      $near: {
+        $geometry: {
+          type: "Point",
+          coordinates: [lng, lat],
+        },
+        $maxDistance: radiusInMeters,
+      },
+    },
+  })
+    // .select("-password")
+    .select("vendorName profile location city state featured verifiedBadge slug")
+    .skip(skip)
+    .limit(limitNumber);
+
+  const total = await Vendor.countDocuments({
+    status: "active",
+    location: {
+      $geoWithin: {
+        $centerSphere: [
+          [lng, lat],
+          radiusInMeters / 6378137, // meters → radians
+        ],
+      },
+    },
+  });
+
+  const totalPages = Math.ceil(total / limitNumber);
+
+  res.status(200).json(
+    new SuccessResponse(200, "Nearby vendors fetched", {
+      vendors,
+      pagination: {
+        total,
+        page: pageNumber,
+        limit: limitNumber,
+        totalPages,
+        radiusKm: parseFloat(radius),
+      },
+    })
+  );
+});
+
+// search venue ear me
+export const searchNearMeVenue = asyncHandler(async (req, res, next) => {
+  let { latitude, longitude, radius = 10, page = 1, limit = 10 } = req.query;
+
+  if (!latitude || !longitude) {
+    return next(new ErrorResponse(400, "Latitude and Longitude are required"));
+  }
+
+  const lat = parseFloat(latitude);
+  const lng = parseFloat(longitude);
+
+  const radiusInMeters = parseFloat(radius) * 1000;
+
+  const pageNumber = Math.max(1, parseInt(page));
+  const limitNumber = Math.max(1, parseInt(limit));
+  const skip = (pageNumber - 1) * limitNumber;
+
+  const venue = await VenuePackage.find({
+    visibility: "public" ,
+    geo_loc: {
+      $near: {
+        $geometry: {
+          type: "Point",
+          coordinates: [lng, lat],
+        },
+        $maxDistance: radiusInMeters,
+      },
+    },
+  })
+    // .select("-password")
+    .select("title featureImage description startingPrice location")
+    .skip(skip)
+    .limit(limitNumber);
+
+  const total = await VenuePackage.countDocuments({
+    visibility: "public" ,
+    geo_loc: {
+      $geoWithin: {
+        $centerSphere: [
+          [lng, lat],
+          radiusInMeters / 6378137, // meters → radians
+        ],
+      },
+    },
+  });
+
+  const totalPages = Math.ceil(total / limitNumber);
+
+  res.status(200).json(
+    new SuccessResponse(200, "Nearby vendors fetched", {
+      venue,
+      pagination: {
+        total,
+        page: pageNumber,
+        limit: limitNumber,
+        totalPages,
+        radiusKm: parseFloat(radius),
+      },
+    })
+  );
 });

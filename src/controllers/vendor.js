@@ -6,7 +6,10 @@ import {
   uploadToCloudinary,
 } from "../utils/cloudinary.js";
 import ErrorResponse from "../utils/ErrorResponse.js";
-import generateToken from "../utils/generateToken.js";
+import {
+  generateAccessToken,
+  generateRefreshToken
+} from "../utils/generateToken.js";
 import sendEmail from "../utils/sendEmail.js";
 import SuccessResponse from "../utils/SuccessResponse.js";
 import redis from "../config/redisClient.js";
@@ -193,13 +196,16 @@ export const createVendor = asyncHandler(async (req, res, next) => {
     ]);
   }
 
-  const token = generateToken(vendor._id);
+  const accessToken = generateAccessToken(vendor._id);
+  const refreshToken = generateRefreshToken(vendor._id);
+  vendor.refreshToken = refreshToken;
+  await vendor.save({ validateBeforeSave: false });
 
   res.status(201).json(
     new SuccessResponse(
       201,
       `Vendor ${vendor.vendorName} created successfully`,
-      { vendor, token }
+      { vendor, accessToken}
     )
   );
 
@@ -425,20 +431,23 @@ export const vendorLogin = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse(401, "Invalid login details"));
   }
 
-  const token = generateToken(vendor._id);
+  const accessToken = generateAccessToken(vendor._id);
+  const refreshToken = generateRefreshToken(vendor._id);
+  vendor.refreshToken = refreshToken;
+  await vendor.save({ validateBeforeSave: false });
 
   if (vendor.role === "admin") {
     return res.status(200).json(
       new SuccessResponse(200, "Welcome Admin", {
         vendor,
-        token,
+        accessToken,
       })
     );
   }
 
   return res
     .status(200)
-    .json(new SuccessResponse(200, "Login successful", { vendor, token }));
+    .json(new SuccessResponse(200, "Login successful", { vendor, accessToken }));
 });
 
 /* // Google OAuth Callback response format
@@ -496,10 +505,13 @@ export const googleAuth = asyncHandler(async (req, res, next) => {
   const vendor = await Vendor.findOne({ email: googleData.email });
 
   if (vendor) {
-    const token = generateToken(vendor._id);
+    const accessToken = generateAccessToken(vendor._id);
+    const refreshToken = generateRefreshToken(vendor._id);
+    vendor.refreshToken = refreshToken;
+    await vendor.save({ validateBeforeSave: false });
     return res.status(200).json(
       new SuccessResponse(200, "Login successful", {
-        token,
+        accessToken,
         vendor,
       })
     );

@@ -15,8 +15,13 @@ const getVendorHeaders = asyncHandler(async (req, _, next) => {
     try {
       token = req.headers.authorization.split(" ")[1];
 
-      //decodes token id
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      // Verify ACCESS token (not refresh token)
+      const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+
+      //  ensure it's an access token
+      if (decoded.type !== "access") {
+        return next(new ErrorResponse(401, "Invalid token type"));
+      }
 
       const vendor = await Vendor.findById(decoded.id).select(
         "_id role featured status verifiedBadge lastActive autoApprovePackages"
@@ -28,7 +33,6 @@ const getVendorHeaders = asyncHandler(async (req, _, next) => {
 
       const now = Date.now();
 
-      // update only if 2 minutes old
       if (!vendor.lastActive || now - vendor.lastActive > 120000) {
         vendor.lastActive = Date.now();
         try {
@@ -39,7 +43,6 @@ const getVendorHeaders = asyncHandler(async (req, _, next) => {
       }
 
       req.vendor = vendor;
-
       next();
     } catch (error) {
       return next(new ErrorResponse(401, "Not authorized, token failed"));
@@ -62,7 +65,10 @@ const getAdminHeaders = asyncHandler(async (req, _, next) => {
       token = req.headers.authorization.split(" ")[1];
 
       //decodes token id
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+      if (decoded.type !== "access") {
+        return next(new ErrorResponse(401, "Invalid token type"));
+      }
 
       const vendor = await Vendor.findById(decoded.id).select(
         "_id role status verifiedBadge lastActive"
@@ -107,7 +113,10 @@ const getUserHeaders = asyncHandler(async (req, _, next) => {
   ) {
     try {
       token = req.headers.authorization.split(" ")[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+      if (decoded.type !== "access") {
+        return next(new ErrorResponse(401, "Invalid token type"));
+      }
 
       const user = await User.findById(decoded.id).select("-password");
 

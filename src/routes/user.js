@@ -13,9 +13,12 @@ import {
 } from "../controllers/user.js";
 import { getUserHeaders } from "../middlewares/authMiddleware.js";
 import { upload } from "../middlewares/multer.js";
+import { refreshAccessTokenUser} from "../controllers/authController.js";
 
 const router = Router();
 
+//access token refresh route
+router.post("/refresh", refreshAccessTokenUser);
 
 // Public
 router.post("/register", upload.single("profile"), registerUser);
@@ -41,7 +44,7 @@ router.put(
   updateUserProfile
 );
 
-router.get("/near-me-vendor",searchNearMe);
-router.get("/near-me-venue",searchNearMeVenue);
+router.get("/near-me-vendor",getUserHeaders,searchNearMe);
+router.get("/near-me-venue",getUserHeaders,searchNearMeVenue);
 
 export default router;
